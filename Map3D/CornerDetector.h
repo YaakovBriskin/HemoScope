@@ -10,8 +10,6 @@ public:
 		m_z = 0.0F;
 		m_croppedRows = 400;
 		m_gradientThreshold = 55;
-		m_sensitivity = 0.05F;
-		m_qualityLevel = 1200.0F;
 		m_minDistancePixels = 200;
 	}
 
@@ -31,7 +29,7 @@ public:
 		const float minDistanceBetweenCorners = 7.0F;
 
 		// Number of pixels around the central pixel for valid kernel odd sizes: 3, 5, 7
-		size_t halfKernelSize = CORNER_DETECTION_KERNEL_SIZE >> 1;
+		size_t halfKernelSize = CORNER_DETECTION_KERNEL_SIZE / 2;
 
 		std::vector<ScoredCorner> scoredCorners;
 
@@ -50,7 +48,7 @@ public:
 
 				// Skip unexpected gray levels - mainly on flares
 				byte grayLevel = matrix.get(row, col);
-				if (!isValidGrayLevelRaw(grayLevel))
+				if (!isValidGrayLevelOriginal(grayLevel))
 				{
 					continue;
 				}
@@ -136,12 +134,6 @@ private:
 	// Detect corners on the gradient matrix after applocation of Sobel filter
 	byte m_gradientThreshold;
 
-	// Adjustable coefficient of Harris algorithm which values can be 0.04 - 0.06 (up to 0.15 is legal)
-	float m_sensitivity;
-
-	// Threshold to accept or reject the calculated response
-	float m_qualityLevel;
-
 	// Minimal allowed distance between detected corners
 	size_t m_minDistancePixels;
 
@@ -168,7 +160,7 @@ private:
 			{
 				// Magnitude (calculated as norm 1) must be trimmed before setting
 				byte trimmedResult =
-					(byte)std::min((short)bufferGx.get(row, col) + (short)bufferGy.get(row, col), 255);
+					(byte)std::min((short)bufferGx.get(row, col) + (short)bufferGy.get(row, col), (int)WHITE);
 				dst.set(row, col, trimmedResult);
 			}
 		}
@@ -205,52 +197,10 @@ private:
 					(short)src.get(row + 1, col + 1) * kernel[8];
 
 				// Convolution result must be trimmed before setting
-				byte trimmedResult = (byte)std::min(std::abs(convolvedResult), 255);
+				byte trimmedResult = (byte)std::min(std::abs(convolvedResult), (int)WHITE);
 				dst.set(row, col, trimmedResult);
 			}
 		}
-	}
-
-	float calculateResponse(ByteMatrix& matrix, size_t x, size_t y, size_t halfKernelSize)
-	{
-		// Accumulate bilinear derivatives for the further calculation of derivatives matrix elements
-		float dxxSum = 0.0F;
-		float dxySum = 0.0F;
-		float dyySum = 0.0F;
-
-		// For each row in the kernel around central pixel
-		for (size_t kernelY = y - halfKernelSize; kernelY < y + halfKernelSize; kernelY++)
-		{
-			// For each col in the kernel around central pixel
-			for (size_t kernelX = x - halfKernelSize; kernelX < x + halfKernelSize; kernelX++)
-			{
-				// Get pixel values
-				byte valCentral = matrix.get(kernelY, kernelX);
-				byte valNextRow = matrix.get(kernelY + 1, kernelX);
-				byte valNextCol = matrix.get(kernelY, kernelX + 1);
-
-				// Calculate discrete partial derivatives
-				float dx = (kernelX == x + halfKernelSize) ? 0.0F : fabsf((float)valNextCol - valCentral);
-				float dy = (kernelY == y + halfKernelSize) ? 0.0F : fabsf((float)valNextRow - valCentral);
-
-				// Accumulate bilinear derivatives
-				dxxSum += dx * dx;
-				dxySum += dx * dy;
-				dyySum += dy * dy;
-			}
-		}
-
-		// Elements of derivatives matrix: averaging performed according to number of accumulated derivatives
-		float dxxAvg = dxxSum / (CORNER_DETECTION_KERNEL_SIZE - 1) / CORNER_DETECTION_KERNEL_SIZE;
-		float dxyAvg = dxySum / (CORNER_DETECTION_KERNEL_SIZE - 1) / (CORNER_DETECTION_KERNEL_SIZE - 1);
-		float dyyAvg = dyySum / (CORNER_DETECTION_KERNEL_SIZE - 1) / CORNER_DETECTION_KERNEL_SIZE;
-
-		// Value of response in Harris corner detector indicates quality of eigenvalues of derivatives matrix
-		float determinant = dxxAvg * dyyAvg - dxyAvg * dxyAvg;
-		float trace = dxxAvg + dyyAvg;
-		float response = fabsf(determinant - m_sensitivity * trace * trace);
-
-		return response;
 	}
 
 	void storeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer)

@@ -102,6 +102,25 @@ public:
 			capillariesInfo.push_back(capillaryInfo);
 
 			std::cout << "Capillary " << capillaryIndex + 1 << ": " << capillaryInfo.pixelsCapillary << " pixels" << std::endl;
+
+
+
+
+			size_t frameUp = capillariesInfo[capillaryIndex].pixelUp.pixelRow;
+			size_t frameDn = capillariesInfo[capillaryIndex].pixelDn.pixelRow;
+			size_t frameLf = capillariesInfo[capillaryIndex].pixelLf.pixelCol;
+			size_t frameRt = capillariesInfo[capillaryIndex].pixelRt.pixelCol;
+			PixelPos start(frameUp, frameLf);
+			MaxRectangle maxRectangleFinder(m_processedMatrix, start,
+				frameDn - frameUp, frameRt - frameLf, layerFolderName, capillaryIndex);
+			std::vector<PixelPos> rotatedRectangle =
+				maxRectangleFinder.findRectangle(layerFolderName, capillaryIndex);
+#ifdef _DEBUG
+			if (!rotatedRectangle.empty())
+			{
+				drawRotatedFrame(rotatedRectangle);
+			}
+#endif
 		}
 
 		std::cout << std::endl << "Describing of capillaries completed" << std::endl << std::endl;
@@ -155,7 +174,7 @@ private:
 		size_t rows = src.rows();
 		size_t cols = src.cols();
 
-		const size_t halfKkernelSize = FINE_SMOOTHING_KERNEL_SIZE >> 1;
+		const size_t halfKernelSize = FINE_SMOOTHING_KERNEL_SIZE / 2;
 
 		// For each row in the source matrix
 		for (size_t row = 0; row < rows; row++)
@@ -164,8 +183,8 @@ private:
 			for (size_t col = 0; col < cols; col++)
 			{
 				// Skip the margin of source - copy source pixels to destination
-				if ((row < halfKkernelSize) || (row >= rows - halfKkernelSize) ||
-					(col < halfKkernelSize) || (col >= cols - halfKkernelSize))
+				if ((row < halfKernelSize) || (row >= rows - halfKernelSize) ||
+					(col < halfKernelSize) || (col >= cols - halfKernelSize))
 				{
 					dst.set(row, col, src.get(row, col));
 					continue;
@@ -173,9 +192,9 @@ private:
 
 				// Calculate and set smoothed gray level
 				unsigned int sum = 0;
-				for (size_t kernelRow = row - halfKkernelSize; kernelRow <= row + halfKkernelSize; kernelRow++)
+				for (size_t kernelRow = row - halfKernelSize; kernelRow <= row + halfKernelSize; kernelRow++)
 				{
-					for (size_t kernelCol = col - halfKkernelSize; kernelCol <= col + halfKkernelSize; kernelCol++)
+					for (size_t kernelCol = col - halfKernelSize; kernelCol <= col + halfKernelSize; kernelCol++)
 					{
 						sum += src.get(kernelRow, kernelCol);
 					}
@@ -192,7 +211,7 @@ private:
 		size_t rows = src.rows();
 		size_t cols = src.cols();
 
-		const size_t halfKkernelSize = DEEP_SMOOTHING_KERNEL_SIZE >> 1;
+		const size_t halfKernelSize = DEEP_SMOOTHING_KERNEL_SIZE / 2;
 
 		// For each row in the source matrix
 		for (size_t row = 0; row < rows; row++)
@@ -201,8 +220,8 @@ private:
 			for (size_t col = 0; col < cols; col++)
 			{
 				// Skip the margin of source with the zeroing of result
-				if ((row < halfKkernelSize) || (row >= rows - halfKkernelSize) ||
-					(col < halfKkernelSize) || (col >= cols - halfKkernelSize))
+				if ((row < halfKernelSize) || (row >= rows - halfKernelSize) ||
+					(col < halfKernelSize) || (col >= cols - halfKernelSize))
 				{
 					dst.set(row, col, 0);
 					continue;
@@ -210,9 +229,9 @@ private:
 
 				// Calculate excess over blurred
 				unsigned int sum = 0;
-				for (size_t kernelRow = row - halfKkernelSize; kernelRow <= row + halfKkernelSize; kernelRow++)
+				for (size_t kernelRow = row - halfKernelSize; kernelRow <= row + halfKernelSize; kernelRow++)
 				{
-					for (size_t kernelCol = col - halfKkernelSize; kernelCol <= col + halfKkernelSize; kernelCol++)
+					for (size_t kernelCol = col - halfKernelSize; kernelCol <= col + halfKernelSize; kernelCol++)
 					{
 						sum += src.get(kernelRow, kernelCol);
 					}
@@ -220,7 +239,7 @@ private:
 				float blurred = (float)sum / DEEP_SMOOTHING_KERNEL_SIZE / DEEP_SMOOTHING_KERNEL_SIZE;
 				float excess = 2.0F * (src.get(row, col) / blurred - 0.75F);
 				excess = std::fminf(std::fmaxf(0.0F, excess), 1.0F);
-				byte normalizedExcess = (byte)std::roundf(255.0F * excess);
+				byte normalizedExcess = (byte)std::roundf(WHITE * excess);
 				dst.set(row, col, normalizedExcess);
 			}
 		}
@@ -250,7 +269,7 @@ private:
 			pixels.pop();
 
 			// Skip already processed pixel - it occurs with the same directions in different order
-			if (m_processedMatrix.get(pixelPos.pixelRow, pixelPos.pixelCol) == 255)
+			if (m_processedMatrix.get(pixelPos.pixelRow, pixelPos.pixelCol) == WHITE)
 			{
 				continue;
 			}
@@ -325,7 +344,7 @@ private:
 		capillaryInfo.energyCapillary += m_originalMatrix.get(pixelPos.pixelRow, pixelPos.pixelCol);
 
 		// Mark the pixel as already processed
-		m_processedMatrix.set(pixelPos.pixelRow, pixelPos.pixelCol, 255);
+		m_processedMatrix.set(pixelPos.pixelRow, pixelPos.pixelCol, WHITE);
 	}
 
 	void collectSurroundings(std::vector<CapillaryInfo>& capillariesInfo)
@@ -458,7 +477,7 @@ private:
 				size_t pixelCount = 0;
 				for (size_t col = capillaryInfo.pixelLf.pixelCol; col <= capillaryInfo.pixelRt.pixelCol; col++)
 				{
-					if (m_processedMatrix.get(row, col) == 255)
+					if (m_processedMatrix.get(row, col) == WHITE)
 					{
 						pixelCount++;
 					}
@@ -474,7 +493,7 @@ private:
 				size_t pixelCount = 0;
 				for (size_t row = capillaryInfo.pixelUp.pixelRow; row <= capillaryInfo.pixelDn.pixelRow; row++)
 				{
-					if (m_processedMatrix.get(row, col) == 255)
+					if (m_processedMatrix.get(row, col) == WHITE)
 					{
 						pixelCount++;
 					}
@@ -497,14 +516,73 @@ private:
 
 			for (size_t row = frameUp; row <= frameDn; row++)
 			{
-				m_originalMatrix.set(row, frameLf, 255);
-				m_originalMatrix.set(row, frameRt, 255);
+				m_originalMatrix.set(row, frameLf, WHITE);
+				m_originalMatrix.set(row, frameRt, WHITE);
 			}
 
 			for (size_t col = frameLf; col <= frameRt; col++)
 			{
-				m_originalMatrix.set(frameUp, col, 255);
-				m_originalMatrix.set(frameDn, col, 255);
+				m_originalMatrix.set(frameUp, col, WHITE);
+				m_originalMatrix.set(frameDn, col, WHITE);
+			}
+		}
+	}
+
+	void drawRotatedFrame(const std::vector<PixelPos>& rotatedFrame)
+	{
+		drawLine(rotatedFrame[UP], rotatedFrame[RT]);
+		drawLine(rotatedFrame[RT], rotatedFrame[DN]);
+		drawLine(rotatedFrame[DN], rotatedFrame[LF]);
+		drawLine(rotatedFrame[LF], rotatedFrame[UP]);
+	}
+
+	void drawLine(PixelPos pixelA, PixelPos pixelB)
+	{
+		PixelPos pixelBegin;
+		PixelPos pixelEnd;
+
+		// Check whether loop iteration is performed along X or Y
+		if (std::abs((int)pixelA.pixelCol - (int)pixelB.pixelCol) >=
+			std::abs((int)pixelA.pixelRow - (int)pixelB.pixelRow))
+		{
+			if (pixelA.pixelCol < pixelB.pixelCol)
+			{
+				pixelBegin = pixelA;
+				pixelEnd = pixelB;
+			}
+			else
+			{
+				pixelBegin = pixelB;
+				pixelEnd = pixelA;
+			}
+			float slope = ((float)pixelEnd.pixelRow - (float)pixelBegin.pixelRow) /
+				((float)pixelEnd.pixelCol - (float)pixelBegin.pixelCol);
+			for (size_t col = pixelBegin.pixelCol; col <= pixelEnd.pixelCol; col++)
+			{
+				size_t row = pixelBegin.pixelRow +
+					(size_t)std::roundf(slope * (col - pixelBegin.pixelCol));
+				m_originalMatrix.set(row, col, WHITE);
+			}
+		}
+		else
+		{
+			if (pixelA.pixelRow < pixelB.pixelRow)
+			{
+				pixelBegin = pixelA;
+				pixelEnd = pixelB;
+			}
+			else
+			{
+				pixelBegin = pixelB;
+				pixelEnd = pixelA;
+			}
+			float slope = ((float)pixelEnd.pixelCol - (float)pixelBegin.pixelCol) /
+				((float)pixelEnd.pixelRow - (float)pixelBegin.pixelRow);
+			for (size_t row = pixelBegin.pixelRow; row <= pixelEnd.pixelRow; row++)
+			{
+				size_t col = pixelBegin.pixelCol +
+					(size_t)std::roundf(slope * (row - pixelBegin.pixelRow));
+				m_originalMatrix.set(row, col, WHITE);
 			}
 		}
 	}

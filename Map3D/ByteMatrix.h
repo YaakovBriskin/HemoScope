@@ -14,6 +14,7 @@ public:
 	{
 		m_rows = 0;
 		m_cols = 0;
+		m_buffer = nullptr;
 	}
 
 	ByteMatrix(const size_t rows, const size_t cols)

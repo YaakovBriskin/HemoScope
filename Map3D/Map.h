@@ -500,7 +500,7 @@ private:
 	void markCorners(ByteMatrix& matrix, std::vector<ScoredCorner>& scoredCorners)
 	{
 		// Number of pixels around the central pixel for valid marker odd sizes
-		size_t halfMarkerSize = m_markerSize >> 1;
+		size_t halfMarkerSize = m_markerSize / 2;
 
 		for (const ScoredCorner& scoredCorner : scoredCorners)
 		{
@@ -519,7 +519,7 @@ private:
 			{
 				for (size_t col = markerColMin; col <= markerColMax; col++)
 				{
-					matrix.set(row, col, 255);
+					matrix.set(row, col, WHITE);
 				}
 			}
 		}

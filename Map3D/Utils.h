@@ -14,6 +14,8 @@ float pixels2mm(size_t pixels)
 	return (float)pixels / PIXELS_IN_MM;
 }
 
+const byte WHITE = 255;
+
 // Size of the kernel to find corners
 const size_t CORNER_DETECTION_KERNEL_SIZE = 3;
 
@@ -22,7 +24,7 @@ const size_t FINE_SMOOTHING_KERNEL_SIZE = 5;
 const size_t DEEP_SMOOTHING_KERNEL_SIZE = 51;
 
 // Examine gray level to find possible capillary corner - performed on raw image
-bool isValidGrayLevelRaw(byte val)
+bool isValidGrayLevelOriginal(byte val)
 {
 	const byte glMin = 50;
 	const byte glMax = 90;
