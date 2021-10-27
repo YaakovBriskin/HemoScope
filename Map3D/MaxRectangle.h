@@ -27,14 +27,6 @@ public:
 	}
 };
 
-enum
-{
-	UP,
-	RT,
-	DN,
-	LF
-};
-
 class MaxRectangle
 {
 public:
@@ -68,6 +60,11 @@ public:
 		size_t centralCol = start.pixelCol + cols / 2;
 		m_centerInImage = PixelPos(centralRow, centralCol);
 
+		m_limitUp = 0;
+		m_limitDn = 0;
+		m_limitLf = 0;
+		m_limitRt = 0;
+
 		m_rowFrameInRotated = 0;
 		m_colFrameInRotated = 0;
 		m_foundAngleRadians = 0.0F;
@@ -81,6 +78,7 @@ public:
 		for (; angleDegrees < 180; angleDegrees += 10)
 		{
 			rotateCapillary(angleDegrees);
+			findCapillaryLimits();
 			dilateRotatedCapillary();
 			foundInscribedRectangle = findInscribedRectangle();
 			if (foundInscribedRectangle)
@@ -88,13 +86,6 @@ public:
 				break;
 			}
 		}
-
-		if (!foundInscribedRectangle)
-		{
-			return rotatedRectangle;
-		}
-
-		markFrameInRotatedCapillary();
 
 #ifdef _DEBUG
 		// Save image of found rotated capillary
@@ -107,6 +98,13 @@ public:
 			std::to_string(capillaryIndex + 1) + ".bmp";
 		cv::imwrite(dilatedFilename, m_dilatedCapillary.asCvMatU8());
 #endif
+		if (!foundInscribedRectangle)
+		{
+			return rotatedRectangle;
+		}
+
+		markFrameInDilatedCapillary();
+
 		// Convert found angle to radians and flip sign: rotated frame on fixed capillary
 		m_foundAngleRadians = -(float)angleDegrees / 180.0F * (float)std::numbers::pi;
 
@@ -120,6 +118,11 @@ private:
 	ByteMatrix m_dilatedCapillary;
 	PixelPos m_centerInImage;
 
+	size_t m_limitUp;
+	size_t m_limitDn;
+	size_t m_limitLf;
+	size_t m_limitRt;
+
 	size_t m_rowFrameInRotated;
 	size_t m_colFrameInRotated;
 	float m_foundAngleRadians;
@@ -129,6 +132,9 @@ private:
 	{
 		// Convert given angle to radians
 		float angle = (float)angleDegrees / 180.0F * (float)std::numbers::pi;
+
+		// Erase previous rotation
+		m_rotatedCapillary.clean();
 
 		size_t rowsSrc = m_originalCapillary.rows();
 		size_t colsSrc = m_originalCapillary.cols();
@@ -160,15 +166,12 @@ private:
 		}
 	}
 
-	std::vector<PixelPos> getCapillaryLimits()
+	void findCapillaryLimits()
 	{
-		// Capillary limits defined by pixel positions in the following order: Up, Rt, Dn, Lf
-		std::vector<PixelPos> capillaryLimits;
-
 		// Used to break nested loops
 		bool found;
 
-		// Add limit: Up
+		// Find limit: Up
 		found = false;
 		for (size_t row = 0; (row < m_rotatedCapillary.rows()) && !found; row++)
 		{
@@ -177,17 +180,13 @@ private:
 				byte pixel = m_rotatedCapillary.get(row, col);
 				if (pixel == WHITE)
 				{
-					//size_t rowInImage = m_centerInImage.pixelRow + row - m_rotatedCapillary.rows() / 2;
-					//size_t colInImage = m_centerInImage.pixelCol + col - m_rotatedCapillary.cols() / 2;
-					size_t rowInImage = row;
-					size_t colInImage = col;
-					capillaryLimits.push_back(PixelPos(rowInImage, colInImage));
+					m_limitUp = row;
 					found = true;
 				}
 			}
 		}
 
-		// Add limit: Rt
+		// Find limit: Rt
 		found = false;
 		for (size_t col = m_rotatedCapillary.cols() - 1; (col > 0) && !found; col--)
 		{
@@ -196,17 +195,13 @@ private:
 				byte pixel = m_rotatedCapillary.get(row, col);
 				if (pixel == WHITE)
 				{
-					//size_t rowInImage = m_centerInImage.pixelRow + row - m_rotatedCapillary.rows() / 2;
-					//size_t colInImage = m_centerInImage.pixelCol + col - m_rotatedCapillary.cols() / 2;
-					size_t rowInImage = row;
-					size_t colInImage = col;
-					capillaryLimits.push_back(PixelPos(rowInImage, colInImage));
+					m_limitRt = col;
 					found = true;
 				}
 			}
 		}
 
-		// Add limit: Dn
+		// Find limit: Dn
 		found = false;
 		for (size_t row = m_rotatedCapillary.rows() - 1; (row > 0) && !found; row--)
 		{
@@ -215,17 +210,13 @@ private:
 				byte pixel = m_rotatedCapillary.get(row, col);
 				if (pixel == WHITE)
 				{
-					//size_t rowInImage = m_centerInImage.pixelRow + row - m_rotatedCapillary.rows() / 2;
-					//size_t colInImage = m_centerInImage.pixelCol + col - m_rotatedCapillary.cols() / 2;
-					size_t rowInImage = row;
-					size_t colInImage = col;
-					capillaryLimits.push_back(PixelPos(rowInImage, colInImage));
+					m_limitDn = row;
 					found = true;
 				}
 			}
 		}
 
-		// Add limit: Lf
+		// Find limit: Lf
 		found = false;
 		for (size_t col = 0; (col < m_rotatedCapillary.cols()) && !found; col++)
 		{
@@ -234,17 +225,11 @@ private:
 				byte pixel = m_rotatedCapillary.get(row, col);
 				if (pixel == WHITE)
 				{
-					//size_t rowInImage = m_centerInImage.pixelRow + row - m_rotatedCapillary.rows() / 2;
-					//size_t colInImage = m_centerInImage.pixelCol + col - m_rotatedCapillary.cols() / 2;
-					size_t rowInImage = row;
-					size_t colInImage = col;
-					capillaryLimits.push_back(PixelPos(rowInImage, colInImage));
+					m_limitLf = col;
 					found = true;
 				}
 			}
 		}
-
-		return capillaryLimits;
 	}
 
 	void dilateRotatedCapillary()
@@ -253,15 +238,12 @@ private:
 		size_t halfKernelSize = dilationKernemSize / 2;
 		size_t threshold = dilationKernemSize * dilationKernemSize / 2 - 1;
 
-		std::vector<PixelPos> rotatedLimits = getCapillaryLimits();
-		size_t frameUp = rotatedLimits[UP].pixelRow;
-		size_t frameDn = rotatedLimits[DN].pixelRow;
-		size_t frameLf = rotatedLimits[LF].pixelCol;
-		size_t frameRt = rotatedLimits[RT].pixelCol;
+		// Erase previous dilation
+		m_dilatedCapillary.clean();
 
-		for (size_t row = frameUp; row <= frameDn; row++)
+		for (size_t row = m_limitUp; row <= m_limitDn; row++)
 		{
-			for (size_t col = frameLf; col <= frameRt; col++)
+			for (size_t col = m_limitLf; col <= m_limitRt; col++)
 			{
 				size_t numWhitePixelsInKernel = 0;
 				for (size_t kernelRow = row - halfKernelSize; kernelRow <= row + halfKernelSize; kernelRow++)
@@ -293,17 +275,11 @@ private:
 
 	bool findInscribedRectangle()
 	{
-		std::vector<PixelPos> rotatedLimits = getCapillaryLimits();
-		size_t frameUp = rotatedLimits[UP].pixelRow;
-		size_t frameDn = rotatedLimits[DN].pixelRow;
-		size_t frameLf = rotatedLimits[LF].pixelCol;
-		size_t frameRt = rotatedLimits[RT].pixelCol;
-
 		bool found = false;
 
-		for (size_t row = frameUp; (row <= frameDn - FRAME_HEIGHT) && !found; row++)
+		for (size_t row = m_limitUp; (row <= m_limitDn - FRAME_HEIGHT) && !found; row++)
 		{
-			for (size_t col = frameLf; (col <= frameRt - FRAME_WIDTH) && !found; col++)
+			for (size_t col = m_limitLf; (col <= m_limitRt - FRAME_WIDTH) && !found; col++)
 			{
 				size_t numWhitePixelsInRectangle = 0;
 				for (size_t frameRow = row; frameRow < row + FRAME_HEIGHT; frameRow++)
@@ -329,7 +305,7 @@ private:
 		return found;
 	}
 
-	void markFrameInRotatedCapillary()
+	void markFrameInDilatedCapillary()
 	{
 		for (size_t row = m_rowFrameInRotated; row <= m_rowFrameInRotated + FRAME_HEIGHT; row++)
 		{

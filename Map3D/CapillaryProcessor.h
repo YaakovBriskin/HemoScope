@@ -131,7 +131,6 @@ public:
 		calculateStatistics(startXmm, startYmm, capillariesInfo, layerFolderName);
 
 #ifdef _DEBUG
-		drawFrames(capillariesInfo);
 		cv::imwrite(layerFolderName + "/Framed.bmp", m_originalMatrix.asCvMatU8());
 #endif
 	}
@@ -505,35 +504,12 @@ private:
 		fileWidthMap.close();
 	}
 
-	void drawFrames(std::vector<CapillaryInfo>& capillariesInfo)
-	{
-		for (const CapillaryInfo& capillaryInfo : capillariesInfo)
-		{
-			size_t frameUp = capillaryInfo.pixelUp.pixelRow;
-			size_t frameDn = capillaryInfo.pixelDn.pixelRow;
-			size_t frameLf = capillaryInfo.pixelLf.pixelCol;
-			size_t frameRt = capillaryInfo.pixelRt.pixelCol;
-
-			for (size_t row = frameUp; row <= frameDn; row++)
-			{
-				m_originalMatrix.set(row, frameLf, WHITE);
-				m_originalMatrix.set(row, frameRt, WHITE);
-			}
-
-			for (size_t col = frameLf; col <= frameRt; col++)
-			{
-				m_originalMatrix.set(frameUp, col, WHITE);
-				m_originalMatrix.set(frameDn, col, WHITE);
-			}
-		}
-	}
-
 	void drawRotatedFrame(const std::vector<PixelPos>& rotatedFrame)
 	{
-		drawLine(rotatedFrame[UP], rotatedFrame[RT]);
-		drawLine(rotatedFrame[RT], rotatedFrame[DN]);
-		drawLine(rotatedFrame[DN], rotatedFrame[LF]);
-		drawLine(rotatedFrame[LF], rotatedFrame[UP]);
+		drawLine(rotatedFrame[0], rotatedFrame[1]);
+		drawLine(rotatedFrame[1], rotatedFrame[2]);
+		drawLine(rotatedFrame[2], rotatedFrame[3]);
+		drawLine(rotatedFrame[3], rotatedFrame[0]);
 	}
 
 	void drawLine(PixelPos pixelA, PixelPos pixelB)

@@ -67,6 +67,11 @@ public:
 		m_buffer[m_cols * row + col] = val;
 	}
 
+	void clean()
+	{
+		memset(m_buffer, 0xCD, m_rows * m_cols);
+	}
+
 protected:
 	size_t m_rows;
 	size_t m_cols;
