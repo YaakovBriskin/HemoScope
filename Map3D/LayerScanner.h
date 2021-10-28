@@ -12,6 +12,7 @@ public:
 	std::vector<LayerInfo> detectCapillaries(Map& map, const std::string& outFolderName)
 	{
 		std::cout << "Detection of capillaries started" << std::endl << std::endl;
+		m_timer.start();
 
 		// Create folder for capillaries data
 		std::string capillariesFolderName = outFolderName + "/Capillaries";
@@ -71,7 +72,9 @@ public:
 #ifdef _DEBUG
 		fileAllLayers.close();
 #endif
-		std::cout << "Detection of capillaries completed" << std::endl << std::endl;
+		m_timer.end();
+		std::cout << "Detection of capillaries completed in " <<
+			m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
 
 		return layersWithCapillaries;
 	}
@@ -105,6 +108,7 @@ public:
 
 private:
 	CornerDetector m_cornerDetector;
+	Timer m_timer;
 
 private:
 	std::string toString(const float val, const int n = 3)

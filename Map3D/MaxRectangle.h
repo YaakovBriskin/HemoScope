@@ -6,6 +6,7 @@
 const byte BLACK = 0;
 const size_t FRAME_WIDTH = 40;
 const size_t FRAME_HEIGHT = 100;
+const float SCORE_THRESHOLD = 0.9F;
 
 class PixelPos
 {
@@ -68,6 +69,7 @@ public:
 		m_rowFrameInRotated = 0;
 		m_colFrameInRotated = 0;
 		m_foundAngleRadians = 0.0F;
+		m_score = 0.0F;
 	}
 
 	std::vector<PixelPos> findRectangle(const std::string& layerFolderName, size_t capillaryIndex)
@@ -93,6 +95,9 @@ public:
 			std::to_string(capillaryIndex + 1) + ".bmp";
 		cv::imwrite(rotatedFilename, m_rotatedCapillary.asCvMatU8());
 
+		// Frame is marked only if inscribed rectangle is found
+		markFrameInDilatedCapillary(foundInscribedRectangle);
+
 		// Save image of found dilated capillary with frame
 		std::string dilatedFilename = layerFolderName + "/Dilated" +
 			std::to_string(capillaryIndex + 1) + ".bmp";
@@ -103,13 +108,24 @@ public:
 			return rotatedRectangle;
 		}
 
-		markFrameInDilatedCapillary();
+		// Width map of the capillary along the longest axis of symmetry of the rectangle
+		writeWidthMap(layerFolderName, capillaryIndex);
 
 		// Convert found angle to radians and flip sign: rotated frame on fixed capillary
 		m_foundAngleRadians = -(float)angleDegrees / 180.0F * (float)std::numbers::pi;
 
 		rotatedRectangle = getRotatedRectangle();
 		return rotatedRectangle;
+	}
+
+	float getAngle()
+	{
+		return m_foundAngleRadians;
+	}
+
+	float getScore()
+	{
+		return 100.0F * (m_score - SCORE_THRESHOLD);
 	}
 
 private:
@@ -126,6 +142,7 @@ private:
 	size_t m_rowFrameInRotated;
 	size_t m_colFrameInRotated;
 	float m_foundAngleRadians;
+	float m_score;
 
 private:
 	void rotateCapillary(size_t angleDegrees)
@@ -133,7 +150,7 @@ private:
 		// Convert given angle to radians
 		float angle = (float)angleDegrees / 180.0F * (float)std::numbers::pi;
 
-		// Erase previous rotation
+		// Reset previous rotation
 		m_rotatedCapillary.clean();
 
 		size_t rowsSrc = m_originalCapillary.rows();
@@ -238,13 +255,14 @@ private:
 		size_t halfKernelSize = dilationKernemSize / 2;
 		size_t threshold = dilationKernemSize * dilationKernemSize / 2 - 1;
 
-		// Erase previous dilation
+		// Reset previous dilation
 		m_dilatedCapillary.clean();
 
 		for (size_t row = m_limitUp; row <= m_limitDn; row++)
 		{
 			for (size_t col = m_limitLf; col <= m_limitRt; col++)
 			{
+				// Count pixels in kernel
 				size_t numWhitePixelsInKernel = 0;
 				for (size_t kernelRow = row - halfKernelSize; kernelRow <= row + halfKernelSize; kernelRow++)
 				{
@@ -257,11 +275,13 @@ private:
 					}
 				}
 
+				// Skip empty areas
 				if (numWhitePixelsInKernel < threshold)
 				{
 					continue;
 				}
 
+				// Fill underfilled areas
 				for (size_t kernelRow = row - halfKernelSize; kernelRow <= row + halfKernelSize; kernelRow++)
 				{
 					for (size_t kernelCol = col - halfKernelSize; kernelCol <= col + halfKernelSize; kernelCol++)
@@ -275,11 +295,9 @@ private:
 
 	bool findInscribedRectangle()
 	{
-		bool found = false;
-
-		for (size_t row = m_limitUp; (row <= m_limitDn - FRAME_HEIGHT) && !found; row++)
+		for (size_t row = m_limitUp; row <= m_limitDn - FRAME_HEIGHT; row++)
 		{
-			for (size_t col = m_limitLf; (col <= m_limitRt - FRAME_WIDTH) && !found; col++)
+			for (size_t col = m_limitLf; col <= m_limitRt - FRAME_WIDTH; col++)
 			{
 				size_t numWhitePixelsInRectangle = 0;
 				for (size_t frameRow = row; frameRow < row + FRAME_HEIGHT; frameRow++)
@@ -293,20 +311,26 @@ private:
 					}
 				}
 
-				if ((float)numWhitePixelsInRectangle / FRAME_WIDTH / FRAME_HEIGHT >= 0.9F)
+				float score = (float)numWhitePixelsInRectangle / FRAME_WIDTH / FRAME_HEIGHT;
+				if (score > m_score)
 				{
 					m_rowFrameInRotated = row;
 					m_colFrameInRotated = col;
-					found = true;
+					m_score = score;
 				}
 			}
 		}
 
-		return found;
+		return m_score >= SCORE_THRESHOLD;
 	}
 
-	void markFrameInDilatedCapillary()
+	void markFrameInDilatedCapillary(bool foundInscribedRectangle)
 	{
+		if (!foundInscribedRectangle)
+		{
+			return;
+		}
+
 		for (size_t row = m_rowFrameInRotated; row <= m_rowFrameInRotated + FRAME_HEIGHT; row++)
 		{
 			m_dilatedCapillary.set(row, m_colFrameInRotated, BLACK);
@@ -318,6 +342,30 @@ private:
 			m_dilatedCapillary.set(m_rowFrameInRotated, col, BLACK);
 			m_dilatedCapillary.set(m_rowFrameInRotated + FRAME_HEIGHT, col, BLACK);
 		}
+	}
+
+	void writeWidthMap(const std::string& layerFolderName, size_t capillaryIndex)
+	{
+		std::string filenameWidthMap = layerFolderName + "/WidthCapillary" +
+			std::to_string(capillaryIndex + 1) + ".csv";
+		std::ofstream fileWidthMap(filenameWidthMap);
+		fileWidthMap << "Distance mm,Width mm" << std::endl;
+
+		for (size_t row = m_limitUp; row <= m_limitDn; row++)
+		{
+			float distance = pixels2mm(row - m_limitUp);
+			size_t widthPixels = 0;
+			for (size_t col = m_limitLf; col <= m_limitRt; col++)
+			{
+				widthPixels += m_dilatedCapillary.get(row, col) == WHITE ? 1 : 0;
+			}
+			float width = pixels2mm(widthPixels);
+			fileWidthMap <<
+				std::setw(8) << distance << "," <<
+				std::setw(8) << width << std::endl;
+		}
+
+		fileWidthMap.close();
 	}
 
 	std::vector<PixelPos> getRotatedRectangle()

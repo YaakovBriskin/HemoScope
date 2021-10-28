@@ -47,6 +47,7 @@ public:
 				}
 
 				// Skip unexpected gray levels - mainly on flares
+				//TRY TO TEST RELATIVELY TO AVERAGE IN 500 x 550 PIXELS
 				byte grayLevel = matrix.get(row, col);
 				if (!isValidGrayLevelOriginal(grayLevel))
 				{
@@ -120,7 +121,7 @@ public:
 		std::string filenameGradient = capillariesFolderName + "/Gradient" + std::to_string(layerIndex + 1) + ".bmp";
 		cv::imwrite(filenameGradient, gradient.asCvMatU8());
 		std::string filenameLayer = capillariesFolderName + "/Layer" + std::to_string(layerIndex + 1) + ".csv";
-		storeCorners(scoredCorners, filenameLayer);
+		writeCorners(scoredCorners, filenameLayer);
 #endif
 		return scoredCorners;
 	}
@@ -203,16 +204,21 @@ private:
 		}
 	}
 
-	void storeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer)
+	void writeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer)
 	{
 		std::ofstream fileLayer(filenameLayer);
-		fileLayer << "Row,Col,Score,Gray level" << std::endl;
+		fileLayer << "Num,Row,Col,Gray level,Score" << std::endl;
+		size_t number = 1;
 		for (const ScoredCorner& scoredCorner : scoredCorners)
 		{
 			size_t row = mm2pixels(scoredCorner.y);
 			size_t col = mm2pixels(scoredCorner.x);
-			fileLayer << row << "," << col << "," << std::setprecision(6) << scoredCorner.score << "," <<
-				(int)scoredCorner.grayLevel << std::endl;
+			fileLayer <<
+				number++ << "," <<
+				row << "," <<
+				col << "," <<
+				(int)scoredCorner.grayLevel << "," <<
+				std::setprecision(4) << scoredCorner.score << std::endl;
 		}
 		fileLayer.close();
 	}

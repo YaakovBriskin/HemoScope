@@ -7,27 +7,31 @@ class CapillaryInfo
 public:
 	size_t index;
 	Point3D posApex;
-	PixelPos pixelUp;
-	PixelPos pixelDn;
-	PixelPos pixelLf;
-	PixelPos pixelRt;
+	size_t limitUp;
+	size_t limitDn;
+	size_t limitLf;
+	size_t limitRt;
 	size_t pixelsCapillary;
 	size_t energyCapillary;
 	size_t pixelsSurroundings;
 	size_t energySurroundings;
+	float angle;
+	float score;
 
 public:
 	CapillaryInfo()
 	{
 		index = 0;
-		pixelUp = PixelPos();
-		pixelDn = PixelPos();
-		pixelLf = PixelPos();
-		pixelRt = PixelPos();
+		limitUp = 0;
+		limitDn = 0;
+		limitLf = 0;
+		limitRt = 0;
 		pixelsCapillary = 0;
 		energyCapillary = 0;
 		pixelsSurroundings = 0;
 		energySurroundings = 0;
+		angle = 0.0F;
+		score = 0.0F;
 	}
 	
 	void setPos(const ScoredCorner& scoredCorner)
@@ -50,7 +54,7 @@ public:
 	void describeCapillaries(float startXmm, float startYmm, Map& map, const LayerInfo& layerInfo,
 		const std::string& outFolderName)
 	{
-		// Filled description of capillaries for further statistics calculation
+		// Filled description of capillaries for further statistics
 		std::vector<CapillaryInfo> capillariesInfo;
 
 		// Create folder only for selected best layer with the corresponding name
@@ -72,25 +76,29 @@ public:
 #endif
 		// Create and fill processed matrix of selected best layer
 		m_processedMatrix = ByteMatrix(m_originalMatrix.rows(), m_originalMatrix.cols());
-		performExcessFiltering(m_originalMatrix, m_processedMatrix); // members passed as parameters to enable filtering in chain
+
+		// Members passed as parameters to support filtering in chain
+		performExcessFiltering(m_originalMatrix, m_processedMatrix);
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Processed.bmp", m_processedMatrix.asCvMatU8());
 #endif
 		size_t numOfDescribedCapillaries =
 			std::min(layerInfo.capillaryApexes.size(), DESCRIBED_CAPILLARIES);
 
-		std::cout << "Describing of capillaries started: " << numOfDescribedCapillaries << " capillaries" << std::endl << std::endl;
+		std::cout << "Describing of capillaries started: " << numOfDescribedCapillaries <<
+			" capillaries" << std::endl << std::endl;
+		m_timer.start();
 
 		// For each capillary in layer
 		for (size_t capillaryIndex = 0; capillaryIndex < numOfDescribedCapillaries; capillaryIndex++)
 		{
+			// Get coordinates of detected point in the capillary
 			ScoredCorner scoredCorner = layerInfo.capillaryApexes[capillaryIndex];
 
+			// Set initial information of the capillary
 			CapillaryInfo capillaryInfo;
 			capillaryInfo.index = capillaryIndex;
 			capillaryInfo.setPos(scoredCorner);
-			capillaryInfo.pixelUp = PixelPos(m_processedMatrix.rows(), m_processedMatrix.cols());
-			capillaryInfo.pixelLf = PixelPos(m_processedMatrix.rows(), m_processedMatrix.cols());
 
 			// Convert position of the corner from mm to pixels
 			size_t cornerRow = mm2pixels(scoredCorner.y);
@@ -98,23 +106,41 @@ public:
 
 			// Mark pixels of the capillary and update information
 			performTraversalBFS(cornerRow, cornerCol, map, capillaryInfo);
-			writeWidthMap(startXmm, startYmm, capillaryInfo, layerFolderName, capillaryIndex);
-			capillariesInfo.push_back(capillaryInfo);
 
-			std::cout << "Capillary " << capillaryIndex + 1 << ": " << capillaryInfo.pixelsCapillary << " pixels" << std::endl;
+			// Skip too sparse capillary
+			if (capillaryInfo.pixelsCapillary < MIN_PIXELS_IN_CAPILLARY)
+			{
+				continue;
+			}
 
+			std::cout << "Capillary " << capillaryIndex + 1 << ": " <<
+				capillaryInfo.pixelsCapillary << " pixels" << std::endl;
 
+			// Skip too low or narrow capillary
+			size_t capillaryRows = capillaryInfo.limitDn - capillaryInfo.limitUp + 1;
+			size_t capillaryCols = capillaryInfo.limitRt - capillaryInfo.limitLf + 1;
+			if ((capillaryRows < FRAME_HEIGHT) || (capillaryCols < FRAME_WIDTH))
+			{
+				continue;
+			}
 
+			// Instance to find inscribed rotated frame
+			MaxRectangle maxRectangleFinder(m_processedMatrix,
+				PixelPos(capillaryInfo.limitUp, capillaryInfo.limitLf),
+				capillaryRows, capillaryCols, layerFolderName, capillaryIndex);
 
-			size_t frameUp = capillariesInfo[capillaryIndex].pixelUp.pixelRow;
-			size_t frameDn = capillariesInfo[capillaryIndex].pixelDn.pixelRow;
-			size_t frameLf = capillariesInfo[capillaryIndex].pixelLf.pixelCol;
-			size_t frameRt = capillariesInfo[capillaryIndex].pixelRt.pixelCol;
-			PixelPos start(frameUp, frameLf);
-			MaxRectangle maxRectangleFinder(m_processedMatrix, start,
-				frameDn - frameUp, frameRt - frameLf, layerFolderName, capillaryIndex);
+			// Rotated frame - can be empty if cannot find suitable rectangle
 			std::vector<PixelPos> rotatedRectangle =
 				maxRectangleFinder.findRectangle(layerFolderName, capillaryIndex);
+
+			// Angle of frame rotation
+			capillaryInfo.angle = maxRectangleFinder.getAngle();
+
+			// Score indicated percentage of marked pixels in the frame
+			capillaryInfo.score = maxRectangleFinder.getScore();
+
+			// Update description of capillaries for further statistics
+			capillariesInfo.push_back(capillaryInfo);
 #ifdef _DEBUG
 			if (!rotatedRectangle.empty())
 			{
@@ -123,12 +149,14 @@ public:
 #endif
 		}
 
-		std::cout << std::endl << "Describing of capillaries completed" << std::endl << std::endl;
+		m_timer.end();
+		std::cout << std::endl << "Describing of capillaries completed in " << 
+			m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Marked.bmp", m_processedMatrix.asCvMatU8());
 #endif
 		collectSurroundings(capillariesInfo);
-		calculateStatistics(startXmm, startYmm, capillariesInfo, layerFolderName);
+		writeStatistics(startXmm, startYmm, capillariesInfo, layerFolderName);
 
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Framed.bmp", m_originalMatrix.asCvMatU8());
@@ -138,6 +166,7 @@ public:
 private:
 	ByteMatrix m_originalMatrix;
 	ByteMatrix m_processedMatrix;
+	Timer m_timer;
 
 private:
 	void performGaussianBlur(ByteMatrix& src, ByteMatrix& dst)
@@ -260,6 +289,10 @@ private:
 		PixelPos pixelRoot = PixelPos(row, col);
 		pixels.push(pixelRoot);
 
+		// Init upper and left limits for further minimization
+		capillaryInfo.limitUp = m_processedMatrix.rows();
+		capillaryInfo.limitLf = m_processedMatrix.cols();
+
 		// The queue of pixels dynamically shrinks and grows on each cycle of the loop
 		while (!pixels.empty())
 		{
@@ -272,7 +305,7 @@ private:
 			{
 				continue;
 			}
-			
+
 			// Do not process pixels on seams but continue the traversal
 			if (map.isOnSeam(pixelPos.pixelRow, true) || map.isOnSeam(pixelPos.pixelCol, false))
 			{
@@ -314,29 +347,11 @@ private:
 
 	void processPixel(const PixelPos& pixelPos, CapillaryInfo& capillaryInfo)
 	{
-		// Examine pixel row to be most up
-		if (pixelPos.pixelRow < capillaryInfo.pixelUp.pixelRow)
-		{
-			capillaryInfo.pixelUp = pixelPos;
-		}
-
-		// Examine pixel row to be most down
-		if (pixelPos.pixelRow > capillaryInfo.pixelDn.pixelRow)
-		{
-			capillaryInfo.pixelDn = pixelPos;
-		}
-
-		// Examine pixel col to be most left
-		if (pixelPos.pixelCol < capillaryInfo.pixelLf.pixelCol)
-		{
-			capillaryInfo.pixelLf = pixelPos;
-		}
-
-		// Examine pixel col to be most right
-		if (pixelPos.pixelCol > capillaryInfo.pixelRt.pixelCol)
-		{
-			capillaryInfo.pixelRt = pixelPos;
-		}
+		// Update limits if processed pixel exceeds existing
+		capillaryInfo.limitUp = std::min(capillaryInfo.limitUp, pixelPos.pixelRow);
+		capillaryInfo.limitDn = std::max(capillaryInfo.limitDn, pixelPos.pixelRow);
+		capillaryInfo.limitLf = std::min(capillaryInfo.limitLf, pixelPos.pixelCol);
+		capillaryInfo.limitRt = std::max(capillaryInfo.limitRt, pixelPos.pixelCol);
 
 		// Accumulate number of pixels and sum of gray levels in the capillary on original matrix
 		capillaryInfo.pixelsCapillary++;
@@ -359,31 +374,31 @@ private:
 			}
 
 			// Rectangle at up
-			size_t rectUpUp = std::max((int)capillaryInfo.pixelUp.pixelRow - (int)surroundingPixels, 0);
-			size_t rectUpDn = capillaryInfo.pixelUp.pixelRow;
-			size_t rectUpLf = capillaryInfo.pixelLf.pixelCol;
-			size_t rectUpRt = capillaryInfo.pixelRt.pixelCol;
+			size_t rectUpUp = std::max((int)capillaryInfo.limitUp - (int)surroundingPixels, 0);
+			size_t rectUpDn = capillaryInfo.limitUp;
+			size_t rectUpLf = capillaryInfo.limitLf;
+			size_t rectUpRt = capillaryInfo.limitRt;
 			updateSurroundingData(capillaryInfo, rectUpUp, rectUpDn, rectUpLf, rectUpRt);
 
 			// Rectangle at down
-			size_t rectDnUp = capillaryInfo.pixelDn.pixelRow;
-			size_t rectDnDn = std::min((int)capillaryInfo.pixelDn.pixelRow + (int)surroundingPixels, (int)m_processedMatrix.rows());
-			size_t rectDnLf = capillaryInfo.pixelLf.pixelCol;
-			size_t rectDnRt = capillaryInfo.pixelRt.pixelCol;
+			size_t rectDnUp = capillaryInfo.limitDn;
+			size_t rectDnDn = std::min((int)capillaryInfo.limitDn + (int)surroundingPixels, (int)m_processedMatrix.rows());
+			size_t rectDnLf = capillaryInfo.limitLf;
+			size_t rectDnRt = capillaryInfo.limitRt;
 			updateSurroundingData(capillaryInfo, rectDnUp, rectDnDn, rectDnLf, rectDnRt);
 
 			// Rectangle at left
-			size_t rectLfUp = capillaryInfo.pixelUp.pixelRow;
-			size_t rectLfDn = capillaryInfo.pixelDn.pixelRow;
-			size_t rectLfLf = std::max((int)capillaryInfo.pixelLf.pixelCol - (int)surroundingPixels, 0);
-			size_t rectLfRt = capillaryInfo.pixelLf.pixelCol;
+			size_t rectLfUp = capillaryInfo.limitUp;
+			size_t rectLfDn = capillaryInfo.limitDn;
+			size_t rectLfLf = std::max((int)capillaryInfo.limitLf - (int)surroundingPixels, 0);
+			size_t rectLfRt = capillaryInfo.limitLf;
 			updateSurroundingData(capillaryInfo, rectLfUp, rectLfDn, rectLfLf, rectLfRt);
 
 			// Rectangle at right
-			size_t rectRtUp = capillaryInfo.pixelUp.pixelRow;
-			size_t rectRtDn = capillaryInfo.pixelDn.pixelRow;
-			size_t rectRtLf = capillaryInfo.pixelRt.pixelCol;
-			size_t rectRtRt = std::min((int)capillaryInfo.pixelRt.pixelCol + (int)surroundingPixels, (int)m_processedMatrix.cols());
+			size_t rectRtUp = capillaryInfo.limitUp;
+			size_t rectRtDn = capillaryInfo.limitDn;
+			size_t rectRtLf = capillaryInfo.limitRt;
+			size_t rectRtRt = std::min((int)capillaryInfo.limitRt + (int)surroundingPixels, (int)m_processedMatrix.cols());
 			updateSurroundingData(capillaryInfo, rectRtUp, rectRtDn, rectRtLf, rectRtRt);
 		}
 	}
@@ -401,39 +416,30 @@ private:
 		}
 	}
 
-	void calculateStatistics(float startXmm, float startYmm, std::vector<CapillaryInfo>& capillariesInfo,
+	void writeStatistics(float startXmm, float startYmm, std::vector<CapillaryInfo>& capillariesInfo,
 		const std::string& layerFolderName)
 	{
+		// Sort found capillaries by score in descending order
+		std::sort(capillariesInfo.begin(), capillariesInfo.end(), [](CapillaryInfo capillaryL, CapillaryInfo capillaryR) {
+			return capillaryL.score > capillaryR.score;
+		});
+
+		// If the better score indicates that inscribed rectangle was not found - nothing is to write
+		if (capillariesInfo[0].score <= 0.0F)
+		{
+			return;
+		}
+
 		std::string filenameData = layerFolderName + "/Data.csv";
 		std::ofstream fileData(filenameData);
-		fileData << "Num,x (col),y (row),z,Angle rad,Contrast" << std::endl;
+		fileData << "Num,x (col),y (row),z,Angle rad,Contrast,Score" << std::endl;
 
 		for (const CapillaryInfo& capillaryInfo : capillariesInfo)
 		{
-			// Calculate angle
-			float angle = 0.0F;
-			if (capillaryInfo.pixelsCapillary >= MIN_PIXELS_IN_CAPILLARY)
+			// Ignore capillaries for which inscribed rectangle was not found
+			if (capillaryInfo.score <= 0.0F)
 			{
-				size_t upToRt = capillaryInfo.pixelRt.pixelCol - capillaryInfo.pixelUp.pixelCol;
-				size_t upToLf = capillaryInfo.pixelUp.pixelCol - capillaryInfo.pixelLf.pixelCol;
-				if (upToRt < upToLf)
-				{
-					// Upper pixel is closer to the right side - clockwise (positive from Y-axis) rotation
-					size_t diagonalUpRtX = (capillaryInfo.pixelUp.pixelCol + capillaryInfo.pixelRt.pixelCol) / 2;
-					size_t diagonalUpRtY = (capillaryInfo.pixelUp.pixelRow + capillaryInfo.pixelRt.pixelRow) / 2;
-					size_t diagonalDnLfX = (capillaryInfo.pixelDn.pixelCol + capillaryInfo.pixelLf.pixelCol) / 2;
-					size_t diagonalDnLfY = (capillaryInfo.pixelDn.pixelRow + capillaryInfo.pixelLf.pixelRow) / 2;
-					angle = std::atan2f((float)(diagonalDnLfY - diagonalUpRtY), (float)(diagonalUpRtX - diagonalDnLfX));
-				}
-				else
-				{
-					// Upper pixel is closer to the left side - counter clockwise (negative from Y-axis) rotation
-					size_t diagonalUpLfX = (capillaryInfo.pixelUp.pixelCol + capillaryInfo.pixelLf.pixelCol) / 2;
-					size_t diagonalUpLfY = (capillaryInfo.pixelUp.pixelRow + capillaryInfo.pixelLf.pixelRow) / 2;
-					size_t diagonalDnRtX = (capillaryInfo.pixelDn.pixelCol + capillaryInfo.pixelRt.pixelCol) / 2;
-					size_t diagonalDnRtY = (capillaryInfo.pixelDn.pixelRow + capillaryInfo.pixelRt.pixelRow) / 2;
-					angle = -std::atan2f((float)(diagonalDnRtY - diagonalUpLfY), (float)(diagonalDnRtX - diagonalUpLfX));
-				}
+				continue;
 			}
 
 			// Calculate contrast
@@ -449,59 +455,15 @@ private:
 
 			fileData <<
 				capillaryInfo.index + 1 << "," <<
-				capillaryInfo.posApex.x + startXmm << " (" << mm2pixels(capillaryInfo.posApex.x) << ")," <<
-				capillaryInfo.posApex.y + startYmm << " (" << mm2pixels(capillaryInfo.posApex.y) << ")," <<
-				capillaryInfo.posApex.z << "," <<
-				angle << "," <<
-				(int)contrast << std::endl;
+				std::setprecision(4) << capillaryInfo.posApex.x + startXmm << " (" << mm2pixels(capillaryInfo.posApex.x) << ")," <<
+				std::setprecision(4) << capillaryInfo.posApex.y + startYmm << " (" << mm2pixels(capillaryInfo.posApex.y) << ")," <<
+				std::setprecision(4) << capillaryInfo.posApex.z << "," <<
+				std::setprecision(2) << capillaryInfo.angle << "," <<
+				(int)contrast << "," <<
+				std::setprecision(2) << capillaryInfo.score << std::endl;
 		}
 
 		fileData.close();
-	}
-
-	void writeWidthMap(float startXmm, float startYmm, const CapillaryInfo& capillaryInfo,
-		const std::string& layerFolderName, size_t capillaryIndex)
-	{
-		std::string filenameWidthMap = layerFolderName + "/WidthMapCapillary" + std::to_string(capillaryIndex + 1) + ".csv";
-		std::ofstream fileWidthMap(filenameWidthMap);
-
-		size_t width  = capillaryInfo.pixelRt.pixelCol - capillaryInfo.pixelLf.pixelCol;
-		size_t height = capillaryInfo.pixelDn.pixelRow - capillaryInfo.pixelUp.pixelRow;
-
-		if (width < height)
-		{
-			fileWidthMap << "y,Width" << std::endl;
-			for (size_t row = capillaryInfo.pixelUp.pixelRow; row <= capillaryInfo.pixelDn.pixelRow; row++)
-			{
-				size_t pixelCount = 0;
-				for (size_t col = capillaryInfo.pixelLf.pixelCol; col <= capillaryInfo.pixelRt.pixelCol; col++)
-				{
-					if (m_processedMatrix.get(row, col) == WHITE)
-					{
-						pixelCount++;
-					}
-				}
-				fileWidthMap << startYmm + pixels2mm(row) << "," << pixels2mm(pixelCount) << std::endl;
-			}
-		}
-		else
-		{
-			fileWidthMap << "x,Width" << std::endl;
-			for (size_t col = capillaryInfo.pixelLf.pixelCol; col <= capillaryInfo.pixelRt.pixelCol; col++)
-			{
-				size_t pixelCount = 0;
-				for (size_t row = capillaryInfo.pixelUp.pixelRow; row <= capillaryInfo.pixelDn.pixelRow; row++)
-				{
-					if (m_processedMatrix.get(row, col) == WHITE)
-					{
-						pixelCount++;
-					}
-				}
-				fileWidthMap << startXmm + pixels2mm(col) << "," << pixels2mm(pixelCount) << std::endl;
-			}
-		}
-
-		fileWidthMap.close();
 	}
 
 	void drawRotatedFrame(const std::vector<PixelPos>& rotatedFrame)
