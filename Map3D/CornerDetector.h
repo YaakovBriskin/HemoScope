@@ -47,7 +47,6 @@ public:
 				}
 
 				// Skip unexpected gray levels - mainly on flares
-				//TRY TO TEST RELATIVELY TO AVERAGE IN 500 x 550 PIXELS
 				byte grayLevel = matrix.get(row, col);
 				if (!isValidGrayLevelOriginal(grayLevel))
 				{

@@ -3,13 +3,22 @@
 
 int main()
 {
-    const std::string folderName = "17";
-    buildMap("../XYZ/" + folderName);
-    saveStiched("../Output/" + folderName, false);
-    printValueAtTruncatedPos(400.0F, 200.0F, 24.6F);
-    detectCapillaries("../Output/" + folderName);
+    const std::string inputFolderName = "../ScansHiRes";
+    const std::string dataFolderName = "emc11";
+    const std::string subfolderName = "5";
+    std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
+    std::string outFolderName = "../Output/" + dataFolderName;
+    if (subfolderName.size() > 0)
+    {
+        imagesFolderName += "/" + subfolderName;
+        outFolderName += "_" + subfolderName; // avoid to create nested folders
+    }
+    buildMap(imagesFolderName);
+    saveStiched(outFolderName, false);
+    printValueAtTruncatedPos(400.0F, 200.0F, 24.6F); // example of map usage
+    detectCapillaries(outFolderName);
     selectBestLayer();
-    describeCapillaries("../Output/" + folderName);
-    saveStiched("../Output/" + folderName, true);
+    describeCapillaries(outFolderName);
+    saveStiched(outFolderName, true);
     return 0;
 }

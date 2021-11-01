@@ -155,6 +155,12 @@ public:
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Marked.bmp", m_processedMatrix.asCvMatU8());
 #endif
+		if (capillariesInfo.empty())
+		{
+			std::cout << "No capillaries found to hold FOV frame" << std::endl << std::endl;
+			return;
+		}
+
 		collectSurroundings(capillariesInfo);
 		writeStatistics(startXmm, startYmm, capillariesInfo, layerFolderName);
 
@@ -241,6 +247,9 @@ private:
 
 		const size_t halfKernelSize = DEEP_SMOOTHING_KERNEL_SIZE / 2;
 
+		std::cout << "Applying of excess HPF started" << std::endl << std::endl;
+		m_timer.start();
+
 		// For each row in the source matrix
 		for (size_t row = 0; row < rows; row++)
 		{
@@ -271,6 +280,10 @@ private:
 				dst.set(row, col, normalizedExcess);
 			}
 		}
+
+		m_timer.end();
+		std::cout << "Applying of excess HPF completed in " <<
+			m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
 	}
 
 	/*
