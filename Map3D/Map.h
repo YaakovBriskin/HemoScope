@@ -418,13 +418,23 @@ private:
 			// Calculate offsets in the desination image and store to skip unwanted corners on seams
 			size_t dstOffsetX = stepPixelsX * indexX;
 			size_t dstOffsetY = stepPixelsY * indexY + BIAS_Y_PIXELS * indexX;
-			if (dstOffsetX > 0)
+
+			// Store all cols in kernel neighborhood to avoid false-positive corners around seams
+			if ((dstOffsetX > 0) && !isOnSeam(dstOffsetX, false))
 			{
-				storeSeam(dstOffsetX, false);
+				for (size_t col = dstOffsetX - DEEP_SMOOTHING_KERNEL_SIZE; col <= dstOffsetX + DEEP_SMOOTHING_KERNEL_SIZE; col++)
+				{
+					m_seamCols.push_back(col);
+				}
 			}
-			if (dstOffsetY > 0)
+
+			// Store all rows in kernel neighborhood to avoid false-positive corners around seams
+			if ((dstOffsetY > 0) && !isOnSeam(dstOffsetY, true))
 			{
-				storeSeam(dstOffsetY, true);
+				for (size_t row = dstOffsetY - DEEP_SMOOTHING_KERNEL_SIZE; row <= dstOffsetY + DEEP_SMOOTHING_KERNEL_SIZE; row++)
+				{
+					m_seamRows.push_back(row);
+				}
 			}
 
 			// Frame width is non-onerlapped vertical area for all frames before last or whole last frame
@@ -468,30 +478,6 @@ private:
 			{
 				byte val = srcImage.at<byte>((int)(srcOffsetRow + srcRow), (int)(srcOffsetCol + srcCol));
 				dstMatrix.set((size_t)dstOffsetRow, dstOffsetX + srcCol, val);
-			}
-		}
-	}
-
-	// Seams are offsets (by rows and cols) of stitched images
-	// Stored with all positions in kernel size neighborhood
-	// Used for further corner detection to skip false-positive corners on seams
-	void storeSeam(size_t posPixels, bool isRow)
-	{
-		if (isRow && !isOnSeam(posPixels, true))
-		{
-			// Store all rows in kernel neighborhood to avoid false-positive corners around seams
-			for (size_t row = posPixels - DEEP_SMOOTHING_KERNEL_SIZE; row <= posPixels + DEEP_SMOOTHING_KERNEL_SIZE; row++)
-			{
-				m_seamRows.push_back(row);
-			}
-		}
-
-		if (!isRow && !isOnSeam(posPixels, false))
-		{
-			// Store all cols in kernel neighborhood to avoid false-positive corners around seams
-			for (size_t col = posPixels - DEEP_SMOOTHING_KERNEL_SIZE; col <= posPixels + DEEP_SMOOTHING_KERNEL_SIZE; col++)
-			{
-				m_seamCols.push_back(col);
 			}
 		}
 	}
