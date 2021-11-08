@@ -9,7 +9,7 @@ public:
 	{
 		m_z = 0.0F;
 		m_croppedRows = 400;
-		m_gradientThreshold = 55;
+		m_gradientThreshold = 35;
 		m_minDistancePixels = 200;
 	}
 

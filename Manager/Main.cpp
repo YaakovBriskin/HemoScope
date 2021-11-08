@@ -13,12 +13,13 @@ int main()
         imagesFolderName += "/" + subfolderName;
         outFolderName += "_" + subfolderName; // avoid to create nested folders
     }
+
     buildMap(imagesFolderName);
-    saveStiched(outFolderName, false);
+    saveStiched(outFolderName);
     printValueAtTruncatedPos(400.0F, 200.0F, 24.6F); // example of map usage
     detectCapillaries(outFolderName);
-    selectBestLayer();
     describeCapillaries(outFolderName);
-    saveStiched(outFolderName, true);
+    saveStiched(outFolderName);
+
     return 0;
 }

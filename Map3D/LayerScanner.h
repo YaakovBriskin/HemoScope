@@ -27,7 +27,7 @@ public:
 		}
 
 		// Create and init file containing data of all layers
-		std::string filenameAllLayers = capillariesFolderName + "/AllLayers.csv";
+		std::string filenameAllLayers = capillariesFolderName + "/AllLayersDetection.csv";
 		std::ofstream fileAllLayers(filenameAllLayers);
 		fileAllLayers << "Layer,Corners,Max score,Sum score" << std::endl;
 #endif
@@ -66,7 +66,14 @@ public:
 				toString(layerInfo.sumScore, 1);
 			fileAllLayers << printedLine << std::endl;
 #endif
-			layersWithCapillaries.push_back(layerInfo);
+			if ((scoredCorners.size() >= MIN_FOUND_CAPILLARIES) && (layerInfo.sumScore > 0.0F))
+			{
+				layersWithCapillaries.push_back(layerInfo);
+			}
+			else
+			{
+				std::cout << "Not enough capillaries found in layer " << layerIndex + 1 << std::endl << std::endl;
+			}
 		}
 
 #ifdef _DEBUG
@@ -79,43 +86,7 @@ public:
 		return layersWithCapillaries;
 	}
 
-	LayerInfo* selectBestLayer(std::vector<LayerInfo>& layersWithCapillaries)
-	{
-		size_t bestLayerIndex = 0;
-		float bestSumScore = 0.0F;
-		for (size_t layerIndex = 0; layerIndex < layersWithCapillaries.size(); layerIndex++)
-		{
-			if (layersWithCapillaries[layerIndex].capillaryApexes.size() < MIN_FOUND_CAPILLARIES)
-			{
-				continue;
-			}
-			if (layersWithCapillaries[layerIndex].sumScore > bestSumScore)
-			{
-				bestLayerIndex = layerIndex;
-				bestSumScore = layersWithCapillaries[layerIndex].sumScore;
-			}
-		}
-
-		if (bestSumScore == 0.0F)
-		{
-			std::cout << "Not enough capillaries found in all layers" << std::endl << std::endl;
-			return nullptr;
-		}
-
-		std::cout << "Best layer: " << bestLayerIndex + 1 << std::endl << std::endl;
-		return &layersWithCapillaries[bestLayerIndex];
-	}
-
 private:
 	CornerDetector m_cornerDetector;
 	Timer m_timer;
-
-private:
-	std::string toString(const float val, const int n = 3)
-	{
-		std::ostringstream out;
-		out.precision(n);
-		out << std::fixed << val;
-		return out.str();
-	}
 };

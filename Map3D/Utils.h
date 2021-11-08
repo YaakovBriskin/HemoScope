@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 typedef unsigned char byte;
 
 const size_t PIXELS_IN_MM = 2600;
@@ -26,7 +28,7 @@ const size_t DEEP_SMOOTHING_KERNEL_SIZE = 51;
 // Examine gray level to find possible capillary corner - performed on raw image
 bool isValidGrayLevelOriginal(byte val)
 {
-	const byte glMin = 50;
+	const byte glMin = 30;
 	const byte glMax = 90;
 	return (glMin <= val) && (val <= glMax);
 }
@@ -42,3 +44,11 @@ bool isValidGrayLevelProcessed(byte val)
 const size_t MIN_FOUND_CAPILLARIES = 3;
 const size_t DESCRIBED_CAPILLARIES = 10;
 const size_t MIN_PIXELS_IN_CAPILLARY = 20;
+
+std::string toString(const float val, const int n = 3)
+{
+	std::ostringstream out;
+	out.precision(n);
+	out << std::fixed << val;
+	return out.str();
+}

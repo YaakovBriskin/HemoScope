@@ -1,46 +1,7 @@
 #pragma once
 
+#include "Map.h"
 #include "MaxRectangle.h"
-
-class CapillaryInfo
-{
-public:
-	size_t index;
-	Point3D posApex;
-	size_t limitUp;
-	size_t limitDn;
-	size_t limitLf;
-	size_t limitRt;
-	size_t pixelsCapillary;
-	size_t energyCapillary;
-	size_t pixelsSurroundings;
-	size_t energySurroundings;
-	float angle;
-	float score;
-
-public:
-	CapillaryInfo()
-	{
-		index = 0;
-		limitUp = 0;
-		limitDn = 0;
-		limitLf = 0;
-		limitRt = 0;
-		pixelsCapillary = 0;
-		energyCapillary = 0;
-		pixelsSurroundings = 0;
-		energySurroundings = 0;
-		angle = 0.0F;
-		score = 0.0F;
-	}
-	
-	void setPos(const ScoredCorner& scoredCorner)
-	{
-		posApex.x = scoredCorner.x;
-		posApex.y = scoredCorner.y;
-		posApex.z = scoredCorner.z;
-	}
-};
 
 class CapillaryProcessor
 {
@@ -49,13 +10,16 @@ public:
 	{
 		m_originalMatrix = ByteMatrix();
 		m_processedMatrix = ByteMatrix();
+		m_layerIndex = 0;
 	}
 
-	void describeCapillaries(float startXmm, float startYmm, Map& map, const LayerInfo& layerInfo,
-		const std::string& outFolderName)
+	void describeCapillaries(Map& map, LayerInfo& layerInfo, const std::string& outFolderName)
 	{
-		// Filled description of capillaries for further statistics
-		std::vector<CapillaryInfo> capillariesInfo;
+		m_layerIndex = layerInfo.layerIndex;
+
+		// Reset scores given by corner detection - new scores will be given by pixels in frame
+		layerInfo.maxScore = 0.0F;
+		layerInfo.sumScore = 0.0F;
 
 		// Create folder only for selected best layer with the corresponding name
 		std::string layerFolderName = outFolderName + "/Layer" + std::to_string(layerInfo.layerIndex + 1);
@@ -68,13 +32,13 @@ public:
 			}
 		}
 
-		// Get selected best layer: desctiption and matrix
+		// Get pixel matrix of current layer from the map
 		Layer layer = map.getLayers()[layerInfo.layerIndex];
 		m_originalMatrix = layer.matrix;
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Original.bmp", m_originalMatrix.asCvMatU8());
 #endif
-		// Create and fill processed matrix of selected best layer
+		// Create and fill processed matrix of current layer
 		m_processedMatrix = ByteMatrix(m_originalMatrix.rows(), m_originalMatrix.cols());
 
 		// Members passed as parameters to support filtering in chain
@@ -82,14 +46,13 @@ public:
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Processed.bmp", m_processedMatrix.asCvMatU8());
 #endif
-		size_t numOfDescribedCapillaries =
-			std::min(layerInfo.capillaryApexes.size(), DESCRIBED_CAPILLARIES);
+		size_t numOfDescribedCapillaries = layerInfo.capillaryApexes.size();
 
-		std::cout << "Describing of capillaries started: " << numOfDescribedCapillaries <<
-			" capillaries" << std::endl << std::endl;
+		std::cout << "Layer " << m_layerIndex + 1 << " - describing of capillaries started: " << 
+			numOfDescribedCapillaries << " capillaries" << std::endl;
 		m_timer.start();
 
-		// For each capillary in layer
+		// For each capillary in the layer: calculate and collect information about the capillary
 		for (size_t capillaryIndex = 0; capillaryIndex < numOfDescribedCapillaries; capillaryIndex++)
 		{
 			// Get coordinates of detected point in the capillary
@@ -113,14 +76,16 @@ public:
 				continue;
 			}
 
-			std::cout << "Capillary " << capillaryIndex + 1 << ": " <<
-				capillaryInfo.pixelsCapillary << " pixels" << std::endl;
+			std::string info = "Capillary " + std::to_string(capillaryIndex + 1) + ": " +
+				std::to_string(capillaryInfo.pixelsCapillary) + " pixels";
 
 			// Skip too low or narrow capillary
 			size_t capillaryRows = capillaryInfo.limitDn - capillaryInfo.limitUp + 1;
 			size_t capillaryCols = capillaryInfo.limitRt - capillaryInfo.limitLf + 1;
 			if ((capillaryRows < FRAME_HEIGHT) || (capillaryCols < FRAME_WIDTH))
 			{
+				info += " - too small";
+				std::cout << info << std::endl;
 				continue;
 			}
 
@@ -129,9 +94,17 @@ public:
 				PixelPos(capillaryInfo.limitUp, capillaryInfo.limitLf),
 				capillaryRows, capillaryCols, layerFolderName, capillaryIndex);
 
-			// Rotated frame - can be empty if cannot find suitable rectangle
+			// Rotated frame - is empty if cannot find rectangle with score over the threshold
 			std::vector<PixelPos> rotatedRectangle =
 				maxRectangleFinder.findRectangle(layerFolderName, capillaryIndex);
+
+			// Skip capillary with score lower than the threshold for which no frame was found
+			if (rotatedRectangle.empty())
+			{
+				info += " - score is lower than threshold";
+				std::cout << info << std::endl;
+				continue;
+			}
 
 			// Angle of frame rotation
 			capillaryInfo.angle = maxRectangleFinder.getAngle();
@@ -139,31 +112,35 @@ public:
 			// Score indicated percentage of marked pixels in the frame
 			capillaryInfo.score = maxRectangleFinder.getScore();
 
-			// Update description of capillaries for further statistics
-			capillariesInfo.push_back(capillaryInfo);
+			info += " - score = " + toString(capillaryInfo.score, 1);
+			std::cout << info << std::endl;
+
+			// Update description of capillaries for further statistics and score calculation
+			layerInfo.capillariesInfo.push_back(capillaryInfo);
 #ifdef _DEBUG
-			if (!rotatedRectangle.empty())
-			{
-				drawRotatedFrame(rotatedRectangle);
-			}
+			drawRotatedFrame(rotatedRectangle);
 #endif
 		}
 
 		m_timer.end();
-		std::cout << std::endl << "Describing of capillaries completed in " << 
+		std::cout << "Layer " << m_layerIndex + 1 <<
+			" - describing of capillaries completed in " <<
 			m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Marked.bmp", m_processedMatrix.asCvMatU8());
 #endif
-		if (capillariesInfo.empty())
+		if (layerInfo.capillariesInfo.empty())
 		{
-			std::cout << "No capillaries found to hold FOV frame" << std::endl << std::endl;
+			std::cout << "Layer " << m_layerIndex + 1 <<
+				" - no capillaries found to hold FOV frame" << std::endl << std::endl;
 			return;
 		}
 
-		collectSurroundings(capillariesInfo);
-		writeStatistics(startXmm, startYmm, capillariesInfo, layerFolderName);
-
+		float startXmm = map.getStartXmm();
+		float startYmm = map.getStartYmm();
+		collectSurroundings(layerInfo.capillariesInfo);
+		trimAndSetLayerScores(layerInfo, startXmm, startYmm,
+			layerInfo.capillariesInfo, layerFolderName);
 #ifdef _DEBUG
 		cv::imwrite(layerFolderName + "/Framed.bmp", m_originalMatrix.asCvMatU8());
 #endif
@@ -172,6 +149,7 @@ public:
 private:
 	ByteMatrix m_originalMatrix;
 	ByteMatrix m_processedMatrix;
+	size_t m_layerIndex;
 	Timer m_timer;
 
 private:
@@ -247,7 +225,8 @@ private:
 
 		const size_t halfKernelSize = DEEP_SMOOTHING_KERNEL_SIZE / 2;
 
-		std::cout << "Applying of excess HPF started" << std::endl << std::endl;
+		std::cout << "Layer " << m_layerIndex + 1 <<
+			" - applying of excess HPF started" << std::endl;
 		m_timer.start();
 
 		// For each row in the source matrix
@@ -282,8 +261,9 @@ private:
 		}
 
 		m_timer.end();
-		std::cout << "Applying of excess HPF completed in " <<
-			m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
+		std::cout << "Layer " << m_layerIndex + 1 <<
+			" - applying of excess HPF completed in " <<
+			m_timer.getDurationMilliseconds() << " ms" << std::endl;
 	}
 
 	/*
@@ -429,32 +409,28 @@ private:
 		}
 	}
 
-	void writeStatistics(float startXmm, float startYmm, std::vector<CapillaryInfo>& capillariesInfo,
-		const std::string& layerFolderName)
+	void trimAndSetLayerScores(LayerInfo& layerInfo, float startXmm, float startYmm,
+		std::vector<CapillaryInfo>& capillariesInfo, const std::string& layerFolderName)
 	{
 		// Sort found capillaries by score in descending order
 		std::sort(capillariesInfo.begin(), capillariesInfo.end(), [](CapillaryInfo capillaryL, CapillaryInfo capillaryR) {
 			return capillaryL.score > capillaryR.score;
 		});
+		layerInfo.maxScore = capillariesInfo.begin()->score;
 
-		// If the better score indicates that inscribed rectangle was not found - nothing is to write
-		if (capillariesInfo[0].score <= 0.0F)
+		// Keep only predefined number of capillaries with best scores
+		if (capillariesInfo.size() > DESCRIBED_CAPILLARIES)
 		{
-			return;
+			capillariesInfo.erase(capillariesInfo.begin() + DESCRIBED_CAPILLARIES, capillariesInfo.end());
 		}
 
 		std::string filenameData = layerFolderName + "/Data.csv";
 		std::ofstream fileData(filenameData);
 		fileData << "Num,x (col),y (row),z,Angle rad,Contrast,Score" << std::endl;
 
+		// For each capillary among predefined number of capillaries with best scores
 		for (const CapillaryInfo& capillaryInfo : capillariesInfo)
 		{
-			// Ignore capillaries for which inscribed rectangle was not found
-			if (capillaryInfo.score <= 0.0F)
-			{
-				continue;
-			}
-
 			// Calculate contrast
 			byte contrast = 0;
 			if (capillaryInfo.pixelsCapillary >= MIN_PIXELS_IN_CAPILLARY)
@@ -474,6 +450,8 @@ private:
 				std::setprecision(2) << capillaryInfo.angle << "," <<
 				(int)contrast << "," <<
 				std::setprecision(2) << capillaryInfo.score << std::endl;
+
+			layerInfo.sumScore += capillaryInfo.score;
 		}
 
 		fileData.close();

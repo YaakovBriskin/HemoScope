@@ -59,6 +59,46 @@ public:
 	}
 };
 
+class CapillaryInfo
+{
+public:
+	size_t index;
+	Point3D posApex;
+	size_t limitUp;
+	size_t limitDn;
+	size_t limitLf;
+	size_t limitRt;
+	size_t pixelsCapillary;
+	size_t energyCapillary;
+	size_t pixelsSurroundings;
+	size_t energySurroundings;
+	float angle;
+	float score;
+
+public:
+	CapillaryInfo()
+	{
+		index = 0;
+		limitUp = 0;
+		limitDn = 0;
+		limitLf = 0;
+		limitRt = 0;
+		pixelsCapillary = 0;
+		energyCapillary = 0;
+		pixelsSurroundings = 0;
+		energySurroundings = 0;
+		angle = 0.0F;
+		score = 0.0F;
+	}
+
+	void setPos(const ScoredCorner& scoredCorner)
+	{
+		posApex.x = scoredCorner.x;
+		posApex.y = scoredCorner.y;
+		posApex.z = scoredCorner.z;
+	}
+};
+
 class LayerInfo
 {
 public:
@@ -68,10 +108,13 @@ public:
 	// Detected corners with the score of each
 	std::vector<ScoredCorner> capillaryApexes;
 
-	// Score of the most appeared capillary in the layer
+	// Description of capillaries in the layer
+	std::vector<CapillaryInfo> capillariesInfo;
+
+	// Score of the best capillary in the layer
 	float maxScore;
 
-	// Score of all capillaries detected in the layer
+	// Scores of all capillaries in the layer
 	float sumScore;
 };
 
@@ -86,7 +129,7 @@ public:
 		m_stepYmm = 0.0F;
 		m_rows = 0;
 		m_cols = 0;
-		m_markerSize = 41;
+		m_markerSize = 21;
 	}
 
 	~Map() = default;
@@ -183,30 +226,43 @@ public:
 			"value = " << (int)val << std::endl << std::endl;
 	}
 
-	void saveStiched(std::vector<LayerInfo>& layersWithCapillaries, const std::string& outFolderName,
-		bool withCorners)
+	void saveStiched(std::vector<LayerInfo>& layersWithCapillaries, const std::string& outFolderName)
 	{
 		createFoldersIfNeed(outFolderName);
 		size_t layersNum = m_layers.size();
 		std::cout << "Start saving of stitched images on " << layersNum << " layers" << std::endl;
 		m_timer.start();
 
-		bool result = true;
-		for (size_t layerIndex = 0; layerIndex < layersNum; layerIndex++)
+		if (layersWithCapillaries.empty())
 		{
-			ByteMatrix layerMatrix = m_layers[layerIndex].matrix;
-			if (withCorners)
+			// Called before capillaries detection: save all layers without detectied capillaries
+			for (size_t layerIndex = 0; layerIndex < layersNum; layerIndex++)
 			{
-				std::vector<ScoredCorner> scoredCorners = layersWithCapillaries[layerIndex].capillaryApexes;
-				markCorners(layerMatrix, scoredCorners);
+				ByteMatrix layerMatrix = m_layers[layerIndex].matrix;
+				std::string layerFilename = outFolderName + "/Stitched/Layer" +
+					std::to_string(layerIndex + 1) + ".bmp";
+				bool result = cv::imwrite(layerFilename, layerMatrix.asCvMatU8());
+				if (!result)
+				{
+					throw std::exception(("Cannot write file: " + layerFilename).c_str());
+				}
 			}
-
-			std::string layerFilename = outFolderName + "/Stitched/Layer" +
-				(withCorners ? "Corners" : "") + std::to_string(layerIndex + 1) + ".bmp";
-			result = cv::imwrite(layerFilename, layerMatrix.asCvMatU8());
-			if (!result)
+		}
+		else
+		{
+			// Called after capillaries detection: save actual layers with detectied capillaries
+			for (const LayerInfo& layerInfo : layersWithCapillaries)
 			{
-				throw std::exception(("Cannot write file: " + layerFilename).c_str());
+				ByteMatrix layerMatrix = m_layers[layerInfo.layerIndex].matrix;
+				std::vector<ScoredCorner> scoredCorners = layerInfo.capillaryApexes;
+				markCorners(layerMatrix, scoredCorners);
+				std::string layerFilename = outFolderName + "/Stitched/LayerDetected" +
+					std::to_string(layerInfo.layerIndex + 1) + ".bmp";
+				bool result = cv::imwrite(layerFilename, layerMatrix.asCvMatU8());
+				if (!result)
+				{
+					throw std::exception(("Cannot write file: " + layerFilename).c_str());
+				}
 			}
 		}
 
@@ -513,6 +569,7 @@ private:
 
 	void createFoldersIfNeed(const std::string& folderName)
 	{
+		// Check existence of output folder for the data and create if it does not exist
 		bool result = true;
 		if (!std::filesystem::exists(std::filesystem::path(folderName)))
 		{
@@ -521,10 +578,16 @@ private:
 			{
 				throw std::exception(("Cannot create folder: " + folderName).c_str());
 			}
-			result = std::filesystem::create_directory(std::filesystem::path(folderName + "/Stitched"));
+		}
+
+		// Check existence of "Stitched" subfolder and create if it does not exist
+		std::string folderNameStitched = folderName + "/Stitched";
+		if (!std::filesystem::exists(std::filesystem::path(folderNameStitched)))
+		{
+			result = std::filesystem::create_directory(std::filesystem::path(folderNameStitched));
 			if (!result)
 			{
-				throw std::exception(("Cannot create folder: " + folderName + "/Stitched").c_str());
+				throw std::exception(("Cannot create folder: " + folderNameStitched).c_str());
 			}
 		}
 	}
