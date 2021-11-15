@@ -171,7 +171,9 @@
     <ClInclude Include="CapillaryProcessor.h" />
     <ClInclude Include="CornerDetector.h" />
     <ClInclude Include="LayerScanner.h" />
+    <ClInclude Include="LineImageProcessor.h" />
     <ClInclude Include="MaxRectangle.h" />
+    <ClInclude Include="Sequence.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Interpolation3D.h" />
@@ -180,6 +182,7 @@
     <ClInclude Include="MapAPI.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Point3D.h" />
+    <ClInclude Include="WideImageProcessor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

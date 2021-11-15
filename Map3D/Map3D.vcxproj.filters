@@ -16,6 +16,9 @@
     <Filter Include="Capillary">
       <UniqueIdentifier>{b97fde83-8532-49f3-a3e6-5d63ee5be0ab}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Locking">
+      <UniqueIdentifier>{dab0344e-0960-4f56-a566-a74b6de2379f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -56,6 +59,15 @@
     </ClInclude>
     <ClInclude Include="MaxRectangle.h">
       <Filter>Capillary</Filter>
+    </ClInclude>
+    <ClInclude Include="LineImageProcessor.h">
+      <Filter>Locking</Filter>
+    </ClInclude>
+    <ClInclude Include="Sequence.h">
+      <Filter>Locking</Filter>
+    </ClInclude>
+    <ClInclude Include="WideImageProcessor.h">
+      <Filter>Locking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

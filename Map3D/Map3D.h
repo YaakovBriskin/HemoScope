@@ -3,11 +3,17 @@
 #include "MapAPI.h"
 #include "LayerScanner.h"
 #include "CapillaryProcessor.h"
+#include "Sequence.h"
+#include "LineImageProcessor.h"
+#include "WideImageProcessor.h"
 
 Map map;
 LayerScanner layerScanner;
 std::vector<LayerInfo> layersWithCapillaries;
 CapillaryProcessor capillaryProcessor;
+Sequence sequence;
+LineImageProcessor lineImageProcessor;
+WideImageProcessor wideImageProcessor;
 
 MAP_API void buildMap(const std::string& folderName)
 {
@@ -21,9 +27,7 @@ MAP_API void printValueAtTruncatedPos(float x, float y, float z)
 
 MAP_API void saveStiched(const std::string& outFolderName)
 {
-#ifdef _DEBUG
 	map.saveStiched(layersWithCapillaries, outFolderName);
-#endif
 }
 
 MAP_API void detectCapillaries(const std::string& outFolderName)
@@ -67,4 +71,39 @@ MAP_API void describeCapillaries(const std::string& outFolderName)
 #ifdef _DEBUG
 	fileAllLayers.close();
 #endif
+}
+
+MAP_API void buildSequence(const std::string& folderName)
+{
+	sequence.buildSequence(folderName);
+}
+
+MAP_API void saveProjections(const std::string& outFolderName)
+{
+	sequence.saveProjections(outFolderName);
+}
+
+MAP_API void calculateGradient(const std::string& outFolderName)
+{
+	std::vector<Projection> projections = sequence.getProjections();
+	//lineImageProcessor.calculateGradient(projections, outFolderName);
+	wideImageProcessor.calculateGradient(projections, outFolderName);
+}
+
+MAP_API void calculateExcess(const std::string& outFolderName)
+{
+	std::vector<Projection> projections = sequence.getProjections();
+	wideImageProcessor.calculateExcess(projections, outFolderName);
+}
+
+MAP_API void calculateSpectrum(const std::string& outFolderName)
+{
+	std::vector<Projection> projections = sequence.getProjections();
+	wideImageProcessor.calculateSpectrum(projections, outFolderName);
+}
+
+MAP_API void calculateStatistics(const std::string& outFolderName)
+{
+	std::vector<Projection> projections = sequence.getProjections();
+	lineImageProcessor.calculateStatistics(projections, outFolderName);
 }

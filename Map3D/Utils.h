@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 
 typedef unsigned char byte;
 
@@ -16,6 +17,8 @@ float pixels2mm(size_t pixels)
 	return (float)pixels / PIXELS_IN_MM;
 }
 
+const byte BLACK = 0;
+const byte DELIM = 128;
 const byte WHITE = 255;
 
 // Size of the kernel to find corners
@@ -51,4 +54,29 @@ std::string toString(const float val, const int n = 3)
 	out.precision(n);
 	out << std::fixed << val;
 	return out.str();
+}
+
+void createFoldersIfNeed(const std::string& folderName, const std::string& subFolderName)
+{
+	// Check existence of folder and create if it does not exist
+	bool result = true;
+	if (!std::filesystem::exists(std::filesystem::path(folderName)))
+	{
+		result = std::filesystem::create_directory(std::filesystem::path(folderName));
+		if (!result)
+		{
+			throw std::exception(("Cannot create folder: " + folderName).c_str());
+		}
+	}
+
+	// Check existence of subfolder and create if it does not exist
+	const std::string nestedFolderName = folderName + "/" + subFolderName;
+	if (!std::filesystem::exists(std::filesystem::path(nestedFolderName)))
+	{
+		result = std::filesystem::create_directory(std::filesystem::path(nestedFolderName));
+		if (!result)
+		{
+			throw std::exception(("Cannot create folder: " + nestedFolderName).c_str());
+		}
+	}
 }

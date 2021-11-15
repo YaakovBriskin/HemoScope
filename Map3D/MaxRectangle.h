@@ -3,7 +3,6 @@
 #include <numbers>
 #include "ByteMatrix.h"
 
-const byte BLACK = 0;
 const size_t FRAME_WIDTH = 40;
 const size_t FRAME_HEIGHT = 100;
 const float SCORE_THRESHOLD = 0.9F;
@@ -251,9 +250,9 @@ private:
 
 	void dilateRotatedCapillary()
 	{
-		const size_t dilationKernemSize = 3;
-		size_t halfKernelSize = dilationKernemSize / 2;
-		size_t threshold = dilationKernemSize * dilationKernemSize / 2 - 1;
+		const size_t dilationKernelSize = 3;
+		size_t halfKernelSize = dilationKernelSize / 2;
+		size_t threshold = dilationKernelSize * dilationKernelSize / 2 - 1;
 
 		// Reset previous dilation
 		m_dilatedCapillary.clean();

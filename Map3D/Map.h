@@ -228,7 +228,7 @@ public:
 
 	void saveStiched(std::vector<LayerInfo>& layersWithCapillaries, const std::string& outFolderName)
 	{
-		createFoldersIfNeed(outFolderName);
+		createFoldersIfNeed(outFolderName, "Stitched");
 		size_t layersNum = m_layers.size();
 		std::cout << "Start saving of stitched images on " << layersNum << " layers" << std::endl;
 		m_timer.start();
@@ -563,31 +563,6 @@ private:
 				{
 					matrix.set(row, col, WHITE);
 				}
-			}
-		}
-	}
-
-	void createFoldersIfNeed(const std::string& folderName)
-	{
-		// Check existence of output folder for the data and create if it does not exist
-		bool result = true;
-		if (!std::filesystem::exists(std::filesystem::path(folderName)))
-		{
-			result = std::filesystem::create_directory(std::filesystem::path(folderName));
-			if (!result)
-			{
-				throw std::exception(("Cannot create folder: " + folderName).c_str());
-			}
-		}
-
-		// Check existence of "Stitched" subfolder and create if it does not exist
-		std::string folderNameStitched = folderName + "/Stitched";
-		if (!std::filesystem::exists(std::filesystem::path(folderNameStitched)))
-		{
-			result = std::filesystem::create_directory(std::filesystem::path(folderNameStitched));
-			if (!result)
-			{
-				throw std::exception(("Cannot create folder: " + folderNameStitched).c_str());
 			}
 		}
 	}
