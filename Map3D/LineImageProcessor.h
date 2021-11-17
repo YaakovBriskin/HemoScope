@@ -8,15 +8,15 @@
 class LineImageProcessor
 {
 public:
-	void calculateGradient(std::vector<Projection>& projections, const std::string& outFolderName)
+	void calculateGradient(std::vector<Projection>& projections, const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Gradients");
+		createFoldersIfNeed(outputFolderName, "Gradients");
 		size_t fileIndex = 0;
 		for (Projection projection : projections)
 		{
 			ByteMatrix gradMatrix(projection.lineMatrix.rows(), projection.lineMatrix.cols());
 			calculateGradientY(projection.lineMatrix, gradMatrix);
-			std::string gradFilename = outFolderName + "/Gradients/LineGrad" +
+			std::string gradFilename = outputFolderName + "/Gradients/LineGrad" +
 				std::to_string(fileIndex++) + ".bmp";
 			bool result = cv::imwrite(gradFilename, gradMatrix.asCvMatU8());
 			if (!result)
@@ -26,13 +26,13 @@ public:
 		}
 	}
 
-	void calculateStatistics(std::vector<Projection>& projections, const std::string& outFolderName)
+	void calculateStatistics(std::vector<Projection>& projections, const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Statistics");
+		createFoldersIfNeed(outputFolderName, "Statistics");
 		size_t fileIndex = 0;
 		for (Projection projection : projections)
 		{
-			std::string whiteInColsFilename = outFolderName + "/Statistics/WhiteInCols" +
+			std::string whiteInColsFilename = outputFolderName + "/Statistics/WhiteInCols" +
 				std::to_string(fileIndex++) + ".csv";
 			std::ofstream whiteInColsFile(whiteInColsFilename);
 			countWhitePixels(projection.lineMatrix, whiteInColsFile);

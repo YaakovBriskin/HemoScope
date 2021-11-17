@@ -226,9 +226,9 @@ public:
 			"value = " << (int)val << std::endl << std::endl;
 	}
 
-	void saveStiched(std::vector<LayerInfo>& layersWithCapillaries, const std::string& outFolderName)
+	void saveStiched(std::vector<LayerInfo>& layersWithCapillaries, const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Stitched");
+		createFoldersIfNeed(outputFolderName, "Stitched");
 		size_t layersNum = m_layers.size();
 		std::cout << "Start saving of stitched images on " << layersNum << " layers" << std::endl;
 		m_timer.start();
@@ -239,7 +239,7 @@ public:
 			for (size_t layerIndex = 0; layerIndex < layersNum; layerIndex++)
 			{
 				ByteMatrix layerMatrix = m_layers[layerIndex].matrix;
-				std::string layerFilename = outFolderName + "/Stitched/Layer" +
+				std::string layerFilename = outputFolderName + "/Stitched/Layer" +
 					std::to_string(layerIndex + 1) + ".bmp";
 				bool result = cv::imwrite(layerFilename, layerMatrix.asCvMatU8());
 				if (!result)
@@ -256,7 +256,7 @@ public:
 				ByteMatrix layerMatrix = m_layers[layerInfo.layerIndex].matrix;
 				std::vector<ScoredCorner> scoredCorners = layerInfo.capillaryApexes;
 				markCorners(layerMatrix, scoredCorners);
-				std::string layerFilename = outFolderName + "/Stitched/LayerDetected" +
+				std::string layerFilename = outputFolderName + "/Stitched/LayerDetected" +
 					std::to_string(layerInfo.layerIndex + 1) + ".bmp";
 				bool result = cv::imwrite(layerFilename, layerMatrix.asCvMatU8());
 				if (!result)
@@ -567,15 +567,15 @@ private:
 		}
 	}
 
-	void copyScanPosFile(const std::string& scanPosFolderName, const std::string& outFolderName)
+	void copyScanPosFile(const std::string& scanPosFolderName, const std::string& outputFolderName)
 	{
 		std::filesystem::path scanPosSrcPathFilename = scanPosFolderName + "/" + SCAN_POS_FILENAME;
-		std::filesystem::path scanPosDstPathFilename = outFolderName + "/Stitched/" + SCAN_POS_FILENAME;
+		std::filesystem::path scanPosDstPathFilename = outputFolderName + "/Stitched/" + SCAN_POS_FILENAME;
 		bool result = std::filesystem::copy_file(scanPosSrcPathFilename, scanPosDstPathFilename,
 			std::filesystem::copy_options::overwrite_existing);
 		if (!result)
 		{
-			throw std::exception(("Cannot copy file: " + outFolderName + "/Stitched/" + SCAN_POS_FILENAME).c_str());
+			throw std::exception(("Cannot copy file: " + outputFolderName + "/Stitched/" + SCAN_POS_FILENAME).c_str());
 		}
 	}
 };

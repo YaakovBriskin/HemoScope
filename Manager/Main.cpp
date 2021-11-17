@@ -7,19 +7,19 @@ void processCapillaries()
     const std::string dataFolderName = "emc11";
     const std::string subfolderName = "5";
     std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
-    std::string outFolderName = "../Output/" + dataFolderName;
+    std::string outputFolderName = "../Output/" + dataFolderName;
     if (subfolderName.size() > 0)
     {
         imagesFolderName += "/" + subfolderName;
-        outFolderName += "_" + subfolderName; // avoid to create nested folders
+        outputFolderName += "_" + subfolderName; // avoid to create nested folders
     }
 
     buildMap(imagesFolderName);
-    saveStiched(outFolderName);
+    saveStiched(outputFolderName);
     printValueAtTruncatedPos(400.0F, 200.0F, 24.6F); // example of map usage
-    detectCapillaries(outFolderName);
-    describeCapillaries(outFolderName);
-    saveStiched(outFolderName);
+    detectCapillaries(outputFolderName);
+    describeCapillaries(outputFolderName);
+    saveStiched(outputFolderName);
 }
 
 void processFocus()
@@ -27,13 +27,13 @@ void processFocus()
     const std::string inputFolderName = "../Z_locking";
     const std::string dataFolderName = "ThroughFocus_C11_2";
     std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
-    std::string outFolderName = "../Output/" + dataFolderName;
-    buildSequence(imagesFolderName);
-    saveProjections(outFolderName);
-    calculateExcess(outFolderName);
-    //calculateSpectrum(outFolderName);
-    //calculateGradient(outFolderName);
-    //calculateStatistics(outFolderName);
+    std::string outputFolderName = "../Output/" + dataFolderName;
+    //buildSequence(imagesFolderName);
+    //saveProjections(outputFolderName);
+    //calculateExcess(outputFolderName);
+    calculateSpectrum(imagesFolderName, outputFolderName);
+    //calculateGradient(outputFolderName);
+    //calculateStatistics(outputFolderName);
 }
 
 int main()

@@ -6,6 +6,7 @@
 #include "Sequence.h"
 #include "LineImageProcessor.h"
 #include "WideImageProcessor.h"
+#include "SpectrumAnalyzer.h"
 
 Map map;
 LayerScanner layerScanner;
@@ -14,6 +15,7 @@ CapillaryProcessor capillaryProcessor;
 Sequence sequence;
 LineImageProcessor lineImageProcessor;
 WideImageProcessor wideImageProcessor;
+SpectrumAnalyzer spectrumAnalyzer;
 
 MAP_API void buildMap(const std::string& folderName)
 {
@@ -25,17 +27,17 @@ MAP_API void printValueAtTruncatedPos(float x, float y, float z)
 	map.printValueAtTruncatedPos(x, y, z);
 }
 
-MAP_API void saveStiched(const std::string& outFolderName)
+MAP_API void saveStiched(const std::string& outputFolderName)
 {
-	map.saveStiched(layersWithCapillaries, outFolderName);
+	map.saveStiched(layersWithCapillaries, outputFolderName);
 }
 
-MAP_API void detectCapillaries(const std::string& outFolderName)
+MAP_API void detectCapillaries(const std::string& outputFolderName)
 {
-	layersWithCapillaries = layerScanner.detectCapillaries(map, outFolderName);
+	layersWithCapillaries = layerScanner.detectCapillaries(map, outputFolderName);
 }
 
-MAP_API void describeCapillaries(const std::string& outFolderName)
+MAP_API void describeCapillaries(const std::string& outputFolderName)
 {
 	if (layersWithCapillaries.empty())
 	{
@@ -44,7 +46,7 @@ MAP_API void describeCapillaries(const std::string& outFolderName)
 	}
 #ifdef _DEBUG
 	// Create and init file containing data of all layers
-	std::string filenameAllLayers = outFolderName + "/Capillaries/ActualLayersFrames.csv";
+	std::string filenameAllLayers = outputFolderName + "/Capillaries/ActualLayersFrames.csv";
 	std::ofstream fileAllLayers(filenameAllLayers);
 	fileAllLayers << "Layer,Frames,Max score,Sum score" << std::endl;
 #endif
@@ -52,7 +54,7 @@ MAP_API void describeCapillaries(const std::string& outFolderName)
 	float bestLayerSumScore = 0.0F;
 	for (LayerInfo& layerInfo : layersWithCapillaries)
 	{
-		capillaryProcessor.describeCapillaries(map, layerInfo, outFolderName);
+		capillaryProcessor.describeCapillaries(map, layerInfo, outputFolderName);
 #ifdef _DEBUG
 		std::string printedLine =
 			std::to_string(layerInfo.layerIndex + 1) + "," +
@@ -78,32 +80,37 @@ MAP_API void buildSequence(const std::string& folderName)
 	sequence.buildSequence(folderName);
 }
 
-MAP_API void saveProjections(const std::string& outFolderName)
+MAP_API void saveProjections(const std::string& outputFolderName)
 {
-	sequence.saveProjections(outFolderName);
+	sequence.saveProjections(outputFolderName);
 }
 
-MAP_API void calculateGradient(const std::string& outFolderName)
+MAP_API void calculateGradient(const std::string& outputFolderName)
 {
 	std::vector<Projection> projections = sequence.getProjections();
-	//lineImageProcessor.calculateGradient(projections, outFolderName);
-	wideImageProcessor.calculateGradient(projections, outFolderName);
+	//lineImageProcessor.calculateGradient(projections, outputFolderName);
+	wideImageProcessor.calculateGradient(projections, outputFolderName);
 }
 
-MAP_API void calculateExcess(const std::string& outFolderName)
+MAP_API void calculateExcess(const std::string& outputFolderName)
 {
 	std::vector<Projection> projections = sequence.getProjections();
-	wideImageProcessor.calculateExcess(projections, outFolderName);
+	wideImageProcessor.calculateExcess(projections, outputFolderName);
 }
 
-MAP_API void calculateSpectrum(const std::string& outFolderName)
+MAP_API void calculateSpectrum(const std::string& outputFolderName)
 {
 	std::vector<Projection> projections = sequence.getProjections();
-	wideImageProcessor.calculateSpectrum(projections, outFolderName);
+	wideImageProcessor.calculateSpectrum(projections, outputFolderName);
 }
 
-MAP_API void calculateStatistics(const std::string& outFolderName)
+MAP_API void calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
+{
+	spectrumAnalyzer.calculateSpectrum(imagesFolderName, outputFolderName);
+}
+
+MAP_API void calculateStatistics(const std::string& outputFolderName)
 {
 	std::vector<Projection> projections = sequence.getProjections();
-	lineImageProcessor.calculateStatistics(projections, outFolderName);
+	lineImageProcessor.calculateStatistics(projections, outputFolderName);
 }

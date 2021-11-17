@@ -13,7 +13,7 @@ public:
 		m_layerIndex = 0;
 	}
 
-	void describeCapillaries(Map& map, LayerInfo& layerInfo, const std::string& outFolderName)
+	void describeCapillaries(Map& map, LayerInfo& layerInfo, const std::string& outputFolderName)
 	{
 		m_layerIndex = layerInfo.layerIndex;
 
@@ -22,7 +22,7 @@ public:
 		layerInfo.sumScore = 0.0F;
 
 		// Create folder only for selected best layer with the corresponding name
-		std::string layerFolderName = outFolderName + "/Layer" + std::to_string(layerInfo.layerIndex + 1);
+		std::string layerFolderName = outputFolderName + "/Layer" + std::to_string(layerInfo.layerIndex + 1);
 		if (!std::filesystem::exists(std::filesystem::path(layerFolderName)))
 		{
 			bool result = std::filesystem::create_directory(std::filesystem::path(layerFolderName));

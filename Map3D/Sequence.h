@@ -81,15 +81,15 @@ public:
 		zPosFile.close();
 	}
 
-	void saveProjections(const std::string& outFolderName)
+	void saveProjections(const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Projections");
+		createFoldersIfNeed(outputFolderName, "Projections");
 
 		size_t fileIndex = 0;
 		bool result = true;
 		for (Projection& projection : m_projections)
 		{
-			std::string wideFilename = outFolderName + "/Projections/Wide" +
+			std::string wideFilename = outputFolderName + "/Projections/Wide" +
 				std::to_string(fileIndex) + ".bmp";
 			result = cv::imwrite(wideFilename, projection.wideMatrix.asCvMatU8());
 			if (!result)
@@ -97,7 +97,7 @@ public:
 				throw std::exception(("Cannot write file: " + wideFilename).c_str());
 			}
 
-			std::string lineFilename = outFolderName + "/Projections/Line" +
+			std::string lineFilename = outputFolderName + "/Projections/Line" +
 				std::to_string(fileIndex) + ".bmp";
 			result = cv::imwrite(lineFilename, projection.lineMatrix.asCvMatU8());
 			if (!result)

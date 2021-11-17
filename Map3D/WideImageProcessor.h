@@ -9,15 +9,15 @@
 class WideImageProcessor
 {
 public:
-	void calculateGradient(std::vector<Projection>& projections, const std::string& outFolderName)
+	void calculateGradient(std::vector<Projection>& projections, const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Gradients");
+		createFoldersIfNeed(outputFolderName, "Gradients");
 		size_t fileIndex = 0;
 		for (Projection projection : projections)
 		{
 			ByteMatrix gradMatrix(projection.wideMatrix.rows(), projection.wideMatrix.cols());
 			calculateGradient(projection.wideMatrix, gradMatrix);
-			std::string gradFilename = outFolderName + "/Gradients/WideGrad" +
+			std::string gradFilename = outputFolderName + "/Gradients/WideGrad" +
 				std::to_string(fileIndex++) + ".bmp";
 			bool result = cv::imwrite(gradFilename, gradMatrix.asCvMatU8());
 			if (!result)
@@ -27,22 +27,22 @@ public:
 		}
 	}
 
-	void calculateExcess(std::vector<Projection>& projections, const std::string& outFolderName)
+	void calculateExcess(std::vector<Projection>& projections, const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Excess");
+		createFoldersIfNeed(outputFolderName, "Excess");
 		size_t fileIndex = 0;
 		for (Projection projection : projections)
 		{
 			ByteMatrix gradMatrix(projection.wideMatrix.rows(), projection.wideMatrix.cols());
 
-			std::string histogramFilename = outFolderName + "/Excess/Histogram" +
+			std::string histogramFilename = outputFolderName + "/Excess/Histogram" +
 				std::to_string(fileIndex) + ".csv";
 			std::ofstream histogramFile(histogramFilename);
 
 			calculateExcess(projection.wideMatrix, gradMatrix, histogramFile);
 			histogramFile.close();
 
-			std::string spectrumFilename = outFolderName + "/Excess/HighFreq" +
+			std::string spectrumFilename = outputFolderName + "/Excess/HighFreq" +
 				std::to_string(fileIndex) + ".bmp";
 			bool result = cv::imwrite(spectrumFilename, gradMatrix.asCvMatU8());
 			if (!result)
@@ -54,15 +54,15 @@ public:
 		}
 	}
 
-	void calculateSpectrum(std::vector<Projection>& projections, const std::string& outFolderName)
+	void calculateSpectrum(std::vector<Projection>& projections, const std::string& outputFolderName)
 	{
-		createFoldersIfNeed(outFolderName, "Spectrum");
+		createFoldersIfNeed(outputFolderName, "Spectrum");
 		size_t fileIndex = 0;
 		for (Projection projection : projections)
 		{
 			ByteMatrix gradMatrix(projection.wideMatrix.rows(), projection.wideMatrix.cols());
 			calculateFourierTransform(projection.wideMatrix, gradMatrix);
-			std::string spectrumFilename = outFolderName + "/Spectrum/DFT" +
+			std::string spectrumFilename = outputFolderName + "/Spectrum/DFT" +
 				std::to_string(fileIndex++) + ".bmp";
 			bool result = cv::imwrite(spectrumFilename, gradMatrix.asCvMatU8());
 			if (!result)

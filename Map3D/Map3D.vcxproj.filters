@@ -69,6 +69,9 @@
     <ClInclude Include="WideImageProcessor.h">
       <Filter>Locking</Filter>
     </ClInclude>
+    <ClInclude Include="SpectrumAnalyzer.h">
+      <Filter>Locking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

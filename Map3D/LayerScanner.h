@@ -9,13 +9,13 @@
 class LayerScanner
 {
 public:
-	std::vector<LayerInfo> detectCapillaries(Map& map, const std::string& outFolderName)
+	std::vector<LayerInfo> detectCapillaries(Map& map, const std::string& outputFolderName)
 	{
 		std::cout << "Detection of capillaries started" << std::endl << std::endl;
 		m_timer.start();
 
 		// Create folder for capillaries data
-		std::string capillariesFolderName = outFolderName + "/Capillaries";
+		std::string capillariesFolderName = outputFolderName + "/Capillaries";
 #ifdef _DEBUG
 		if (!std::filesystem::exists(std::filesystem::path(capillariesFolderName)))
 		{
