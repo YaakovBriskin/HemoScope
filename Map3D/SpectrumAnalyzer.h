@@ -3,21 +3,15 @@
 #include <vector>
 #include <complex>
 
-#pragma warning(push)
-#pragma warning(disable: 5054)
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgcodecs.hpp>
-#pragma warning(pop)
-#pragma warning(disable: 26812)
-
 #include "../simple_fft/fft_settings.h"
 #include "../simple_fft/fft.h"
 #include "ByteMatrix.h"
 
+#pragma warning(disable: 26812)
+
 typedef std::vector<std::vector<real_type>> RealArray2D;
 typedef std::vector<std::vector<complex_type>> ComplexArray2D;
 
-const size_t FILE_NUM = 37;
 const size_t FFT_SIZE = 512;
 const size_t ENERGY_SIZE = 25;
 const double NORMALIZATIUON = 15.0;
@@ -29,23 +23,30 @@ enum AreaType
 	CENTRAL
 };
 
+struct RegressionResult
+{
+	float slope;
+	float offset;
+};
+
 class SpectrumAnalyzer
 {
 public:
-	void calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
+	RegressionResult calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
 	{
 		std::filesystem::path inputFolder = std::filesystem::absolute(std::filesystem::path(imagesFolderName));
 		std::string absFolderName = inputFolder.generic_string();
 		std::replace(absFolderName.begin(), absFolderName.end(), '/', '\\');
 		std::cout << "Input data folder:" << std::endl << absFolderName << std::endl << std::endl;
 
+		std::vector<float> positionsZ = loadPositionsZ(imagesFolderName);
+
 		const size_t fileNameSize = 32;
 		char inputFilename[fileNameSize];
+		createFoldersIfNeed(outputFolderName, "SpectrumFFT");
 
-		std::string energyFilename = outputFolderName + "/SpectrumFFT/Energy.csv";
-		std::ofstream energyFile(energyFilename);
-
-		for (size_t fileIndex = 0; fileIndex < FILE_NUM; fileIndex++)
+		std::vector<float> energyValues;
+		for (size_t fileIndex = 0; fileIndex < positionsZ.size(); fileIndex++)
 		{
 			sprintf_s(inputFilename, fileNameSize, "Bright%4d.tif", (int)fileIndex);
 			cv::Mat wideImage = cv::imread(imagesFolderName + "/" + inputFilename, cv::IMREAD_GRAYSCALE);
@@ -55,7 +56,7 @@ public:
 			cv::Mat wideSpectrum(wideImage.rows, wideImage.cols, CV_8U);
 
 			float energyDiff = calculateFFT(wideImage, wideSpectrum);
-			energyFile << energyDiff << std::endl;
+			energyValues.push_back(energyDiff);
 
 			std::string spectrumFilename = outputFolderName + "/SpectrumFFT/Spectrum" +
 				std::to_string(fileIndex) + ".bmp";
@@ -66,7 +67,9 @@ public:
 			}
 		}
 
-		energyFile.close();
+		RegressionResult result = calculateRegression(energyValues, positionsZ);
+		saveResults(energyValues, positionsZ, result, outputFolderName);
+		return result;
 	}
 
 private:
@@ -74,11 +77,32 @@ private:
 	size_t m_cols;
 
 private:
+	std::vector<float> loadPositionsZ(const std::string& folderName)
+	{
+		std::vector<float> positionsZ;
+
+		// Open file with Z positions
+		std::string zPosPathFilename = folderName + "/" + Z_POS_FILENAME;
+		std::ifstream zPosFile(zPosPathFilename);
+
+		// Iterate Z positions in the file and fill the vector of projections
+		std::string line;
+		while (!zPosFile.eof())
+		{
+			getline(zPosFile, line);
+			if (line.empty())
+			{
+				break;
+			}
+			float z = (float)atof(line.c_str());
+			positionsZ.push_back(z);
+		}
+
+		return positionsZ;
+	}
+
 	float calculateFFT(cv::Mat& src, cv::Mat& dst)
 	{
-		//cv::dft(src, dst, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
-		//cv::dft(src, dst, cv::DFT_REAL_OUTPUT);
-
 		size_t rowBegin = (FFT_SIZE - m_rows) / 2;
 		size_t colBegin = (FFT_SIZE - m_cols) / 2;
 
@@ -165,5 +189,50 @@ private:
 		}
 
 		return AreaType::NOTHING;
+	}
+
+	RegressionResult calculateRegression(std::vector<float>& energyValues, std::vector<float>& positionsZ)
+	{
+		size_t n = energyValues.size();
+		if (positionsZ.size() != n)
+		{
+			throw std::exception("Data sizes mismatch");
+		}
+
+		float sumX1 = 0.0F;
+		float sumX2 = 0.0F;
+		float sumY1 = 0.0F;
+		float sumXY = 0.0F;
+		for (size_t i = 0; i < n; i++)
+		{
+			sumX1 += energyValues[i];
+			sumX2 += energyValues[i] * energyValues[i];
+			sumY1 += positionsZ[i];
+			sumXY += energyValues[i] * positionsZ[i];
+		}
+
+		RegressionResult result;
+		result.slope = (n * sumXY - sumX1 * sumY1) / (n * sumX2 - sumX1 * sumX1);
+		result.offset = (sumX2 * sumY1 - sumXY * sumX1) / (n * sumX2 - sumX1 * sumX1);
+		return result;
+	}
+
+	void saveResults(std::vector<float>& energyValues, std::vector<float>& positionsZ,
+		RegressionResult& result, const std::string& outputFolderName)
+	{
+		std::string positionsFilename = outputFolderName + "/PositionsZ.csv";
+		std::ofstream positionsFile(positionsFilename);
+		positionsFile << "Index,Z given,Z calculated" << std::endl;
+
+		for (size_t posIndex = 0; posIndex < positionsZ.size(); posIndex++)
+		{
+			float positionCalc = result.slope * energyValues[posIndex] + result.offset;
+			positionsFile <<
+				posIndex << "," <<
+				positionsZ[posIndex] << "," <<
+				positionCalc << std::endl;
+		}
+
+		positionsFile.close();
 	}
 };

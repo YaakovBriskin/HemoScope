@@ -13,8 +13,6 @@
 
 #include "ByteMatrix.h"
 
-const std::string Z_POS_FILENAME = "TF_vec_col.csv";
-
 class Projection
 {
 public:

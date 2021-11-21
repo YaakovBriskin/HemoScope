@@ -28,6 +28,8 @@ const size_t CORNER_DETECTION_KERNEL_SIZE = 3;
 const size_t FINE_SMOOTHING_KERNEL_SIZE = 5;
 const size_t DEEP_SMOOTHING_KERNEL_SIZE = 51;
 
+const std::string Z_POS_FILENAME = "TF_vec_col.csv";
+
 // Examine gray level to find possible capillary corner - performed on raw image
 bool isValidGrayLevelOriginal(byte val)
 {
