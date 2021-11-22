@@ -12,10 +12,11 @@ Map map;
 LayerScanner layerScanner;
 std::vector<LayerInfo> layersWithCapillaries;
 CapillaryProcessor capillaryProcessor;
-Sequence sequence;
 LineImageProcessor lineImageProcessor;
 WideImageProcessor wideImageProcessor;
 SpectrumAnalyzer spectrumAnalyzer;
+Sequence sequence;
+std::vector<float> positionsZ;
 
 MAP_API void buildMap(const std::string& folderName)
 {
@@ -75,6 +76,11 @@ MAP_API void describeCapillaries(const std::string& outputFolderName)
 #endif
 }
 
+MAP_API void loadPositionsZ(const std::string& folderName)
+{
+	positionsZ = sequence.loadPositionsZ(folderName);
+}
+
 MAP_API void buildSequence(const std::string& folderName)
 {
 	sequence.buildSequence(folderName);
@@ -85,32 +91,12 @@ MAP_API void saveProjections(const std::string& outputFolderName)
 	sequence.saveProjections(outputFolderName);
 }
 
-MAP_API void calculateGradient(const std::string& outputFolderName)
+MAP_API void calculateStatistics(const std::string& imagesFolderName, const std::string& outputFolderName)
 {
-	std::vector<Projection> projections = sequence.getProjections();
-	//lineImageProcessor.calculateGradient(projections, outputFolderName);
-	wideImageProcessor.calculateGradient(projections, outputFolderName);
-}
-
-MAP_API void calculateExcess(const std::string& outputFolderName)
-{
-	std::vector<Projection> projections = sequence.getProjections();
-	wideImageProcessor.calculateExcess(projections, outputFolderName);
-}
-
-MAP_API void calculateSpectrum(const std::string& outputFolderName)
-{
-	std::vector<Projection> projections = sequence.getProjections();
-	wideImageProcessor.calculateSpectrum(projections, outputFolderName);
+	wideImageProcessor.calculateStatistics(imagesFolderName, outputFolderName, positionsZ);
 }
 
 MAP_API void calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
 {
-	spectrumAnalyzer.calculateSpectrum(imagesFolderName, outputFolderName);
-}
-
-MAP_API void calculateStatistics(const std::string& outputFolderName)
-{
-	std::vector<Projection> projections = sequence.getProjections();
-	lineImageProcessor.calculateStatistics(projections, outputFolderName);
+	spectrumAnalyzer.calculateSpectrum(imagesFolderName, outputFolderName, positionsZ);
 }

@@ -34,6 +34,30 @@ public:
 	{
 	}
 
+	std::vector<float> loadPositionsZ(const std::string& folderName)
+	{
+		std::vector<float> positionsZ;
+
+		// Open file with Z positions
+		std::string zPosPathFilename = folderName + "/" + Z_POS_FILENAME;
+		std::ifstream zPosFile(zPosPathFilename);
+
+		// Iterate Z positions in the file and fill the vector of projections
+		std::string line;
+		while (!zPosFile.eof())
+		{
+			getline(zPosFile, line);
+			if (line.empty())
+			{
+				break;
+			}
+			float z = (float)atof(line.c_str());
+			positionsZ.push_back(z);
+		}
+
+		return positionsZ;
+	}
+
 	void buildSequence(const std::string& folderName)
 	{
 		std::filesystem::path folder = std::filesystem::absolute(std::filesystem::path(folderName));

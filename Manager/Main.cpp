@@ -28,12 +28,9 @@ void processFocus()
     const std::string dataFolderName = "ThroughFocus_C11_2";
     std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
     std::string outputFolderName = "../Output/" + dataFolderName;
-    //buildSequence(imagesFolderName);
-    //saveProjections(outputFolderName);
-    //calculateExcess(outputFolderName);
-    calculateSpectrum(imagesFolderName, outputFolderName);
-    //calculateGradient(outputFolderName);
-    //calculateStatistics(outputFolderName);
+    loadPositionsZ(imagesFolderName);
+    calculateStatistics(imagesFolderName, outputFolderName);
+    //calculateSpectrum(imagesFolderName, outputFolderName);
 }
 
 int main()

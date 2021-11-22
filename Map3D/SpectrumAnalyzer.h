@@ -23,23 +23,16 @@ enum AreaType
 	CENTRAL
 };
 
-struct RegressionResult
-{
-	float slope;
-	float offset;
-};
-
 class SpectrumAnalyzer
 {
 public:
-	RegressionResult calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
+	RegressionResult calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName,
+		std::vector<float>& positionsZ)
 	{
 		std::filesystem::path inputFolder = std::filesystem::absolute(std::filesystem::path(imagesFolderName));
 		std::string absFolderName = inputFolder.generic_string();
 		std::replace(absFolderName.begin(), absFolderName.end(), '/', '\\');
 		std::cout << "Input data folder:" << std::endl << absFolderName << std::endl << std::endl;
-
-		std::vector<float> positionsZ = loadPositionsZ(imagesFolderName);
 
 		const size_t fileNameSize = 32;
 		char inputFilename[fileNameSize];
@@ -68,7 +61,7 @@ public:
 		}
 
 		RegressionResult result = calculateRegression(energyValues, positionsZ);
-		saveResults(energyValues, positionsZ, result, outputFolderName);
+		saveResults(positionsZ, energyValues, result, outputFolderName);
 		return result;
 	}
 
@@ -77,30 +70,6 @@ private:
 	size_t m_cols;
 
 private:
-	std::vector<float> loadPositionsZ(const std::string& folderName)
-	{
-		std::vector<float> positionsZ;
-
-		// Open file with Z positions
-		std::string zPosPathFilename = folderName + "/" + Z_POS_FILENAME;
-		std::ifstream zPosFile(zPosPathFilename);
-
-		// Iterate Z positions in the file and fill the vector of projections
-		std::string line;
-		while (!zPosFile.eof())
-		{
-			getline(zPosFile, line);
-			if (line.empty())
-			{
-				break;
-			}
-			float z = (float)atof(line.c_str());
-			positionsZ.push_back(z);
-		}
-
-		return positionsZ;
-	}
-
 	float calculateFFT(cv::Mat& src, cv::Mat& dst)
 	{
 		size_t rowBegin = (FFT_SIZE - m_rows) / 2;
@@ -217,7 +186,7 @@ private:
 		return result;
 	}
 
-	void saveResults(std::vector<float>& energyValues, std::vector<float>& positionsZ,
+	void saveResults(std::vector<float>& positionsZ, std::vector<float>& energyValues,
 		RegressionResult& result, const std::string& outputFolderName)
 	{
 		std::string positionsFilename = outputFolderName + "/PositionsZ.csv";

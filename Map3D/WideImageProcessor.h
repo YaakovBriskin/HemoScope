@@ -9,171 +9,139 @@
 class WideImageProcessor
 {
 public:
-	void calculateGradient(std::vector<Projection>& projections, const std::string& outputFolderName)
+	void calculateStatistics(const std::string& imagesFolderName, const std::string& outputFolderName,
+		std::vector<float>& positionsZ)
 	{
-		createFoldersIfNeed(outputFolderName, "Gradients");
-		size_t fileIndex = 0;
-		for (Projection projection : projections)
-		{
-			ByteMatrix gradMatrix(projection.wideMatrix.rows(), projection.wideMatrix.cols());
-			calculateGradient(projection.wideMatrix, gradMatrix);
-			std::string gradFilename = outputFolderName + "/Gradients/WideGrad" +
-				std::to_string(fileIndex++) + ".bmp";
-			bool result = cv::imwrite(gradFilename, gradMatrix.asCvMatU8());
-			if (!result)
-			{
-				throw std::exception(("Cannot write file: " + gradFilename).c_str());
-			}
-		}
-	}
+		std::filesystem::path inputFolder = std::filesystem::absolute(std::filesystem::path(imagesFolderName));
+		std::string absFolderName = inputFolder.generic_string();
+		std::replace(absFolderName.begin(), absFolderName.end(), '/', '\\');
+		std::cout << "Input data folder:" << std::endl << absFolderName << std::endl << std::endl;
 
-	void calculateExcess(std::vector<Projection>& projections, const std::string& outputFolderName)
-	{
-		createFoldersIfNeed(outputFolderName, "Excess");
-		size_t fileIndex = 0;
-		for (Projection projection : projections)
-		{
-			ByteMatrix gradMatrix(projection.wideMatrix.rows(), projection.wideMatrix.cols());
+		const size_t fileNameSize = 32;
+		char inputFilename[fileNameSize];
+		createFoldersIfNeed(outputFolderName, "Histogram");
 
-			std::string histogramFilename = outputFolderName + "/Excess/Histogram" +
+		std::string statisticsFilename = outputFolderName + "/Histogram/Statistics.csv";
+		std::ofstream statisticsFile(statisticsFilename);
+
+		std::vector<float> modeIndices;
+		for (size_t fileIndex = 0; fileIndex < positionsZ.size(); fileIndex++)
+		{
+			sprintf_s(inputFilename, fileNameSize, "Bright%4d.tif", (int)fileIndex);
+			cv::Mat wideImage = cv::imread(imagesFolderName + "/" + inputFilename, cv::IMREAD_GRAYSCALE);
+
+			std::string histogramFilename = outputFolderName + "/Histogram/Histogram" +
 				std::to_string(fileIndex) + ".csv";
 			std::ofstream histogramFile(histogramFilename);
 
-			calculateExcess(projection.wideMatrix, gradMatrix, histogramFile);
+			size_t modeIndex = calculateStatistics(wideImage, histogramFile, statisticsFile);
+			modeIndices.push_back((float)modeIndex);
 			histogramFile.close();
-
-			std::string spectrumFilename = outputFolderName + "/Excess/HighFreq" +
-				std::to_string(fileIndex) + ".bmp";
-			bool result = cv::imwrite(spectrumFilename, gradMatrix.asCvMatU8());
-			if (!result)
-			{
-				throw std::exception(("Cannot write file: " + spectrumFilename).c_str());
-			}
-
-			fileIndex++;
 		}
-	}
 
-	void calculateSpectrum(std::vector<Projection>& projections, const std::string& outputFolderName)
-	{
-		createFoldersIfNeed(outputFolderName, "Spectrum");
-		size_t fileIndex = 0;
-		for (Projection projection : projections)
-		{
-			ByteMatrix gradMatrix(projection.wideMatrix.rows(), projection.wideMatrix.cols());
-			calculateFourierTransform(projection.wideMatrix, gradMatrix);
-			std::string spectrumFilename = outputFolderName + "/Spectrum/DFT" +
-				std::to_string(fileIndex++) + ".bmp";
-			bool result = cv::imwrite(spectrumFilename, gradMatrix.asCvMatU8());
-			if (!result)
-			{
-				throw std::exception(("Cannot write file: " + spectrumFilename).c_str());
-			}
-		}
+		statisticsFile.close();
+
+		RegressionResult result = calculateRegression(modeIndices, positionsZ);
+		saveResults(positionsZ, modeIndices, result, outputFolderName);
 	}
 
 private:
-	void calculateGradient(ByteMatrix& src, ByteMatrix& dst)
+	size_t calculateStatistics(cv::Mat& src, std::ofstream& histogramFile, std::ofstream& statisticsFile)
 	{
-		size_t rows = src.rows();
-		size_t cols = src.cols();
+		size_t rows = src.rows;
+		size_t cols = src.cols;
 
-		for (size_t row = 0; row < rows; row++)
-		{
-			for (size_t col = 0; col < cols; col++)
-			{
-				if ((row == 0) || (row == rows - 1) || (col == 0) || (col == cols - 1))
-				{
-					dst.set(row, col, 0);
-					continue;
-				}
+		size_t rowCenterL = rows / 3;
+		size_t rowCenterR = 2 * rows / 3;
+		size_t colCenterL = cols / 3;
+		size_t colCenterR = 2 * cols / 3;
 
-				byte valPrevRow = src.get(row - 1, col);
-				byte valNextRow = src.get(row + 1, col);
-				float gradRow = 10.0F * ((float)valNextRow - (float)valPrevRow);
+		size_t pixelsNum = (rowCenterR - rowCenterL) * (colCenterR - colCenterL);
 
-				byte valPrevCol = src.get(row, col - 1);
-				byte valNextCol = src.get(row, col + 1);
-				float gradCol = 10.0F * ((float)valNextCol - (float)valPrevCol);
-
-				byte grad = (byte)std::fminf(std::roundf(std::sqrtf(gradRow * gradRow + gradCol * gradCol)), 255.0F);
-				dst.set(row, col, grad);
-			}
-		}
-	}
-
-	void calculateExcess(ByteMatrix& src, ByteMatrix& dst, std::ofstream& histogramFile)
-	{
-		size_t rows = src.rows();
-		size_t cols = src.cols();
-
-		const size_t halfKernelSize = DEEP_SMOOTHING_KERNEL_SIZE / 2;
-
-		size_t histogram[256];
+		size_t histogram[WHITE + 1];
 		memset(histogram, 0, sizeof(histogram));
 
-		for (size_t row = 0; row < rows; row++)
+		for (size_t row = rowCenterL; row < rowCenterR; row++)
 		{
-			for (size_t col = 0; col < cols; col++)
+			for (size_t col = colCenterL; col < colCenterR; col++)
 			{
-				if ((row < halfKernelSize) || (row >= rows - halfKernelSize) ||
-					(col < halfKernelSize) || (col >= cols - halfKernelSize))
-				{
-					dst.set(row, col, 0);
-					continue;
-				}
-
-				// Calculate excess over blurred
-				unsigned int sum = 0;
-				for (size_t kernelRow = row - halfKernelSize; kernelRow <= row + halfKernelSize; kernelRow++)
-				{
-					for (size_t kernelCol = col - halfKernelSize; kernelCol <= col + halfKernelSize; kernelCol++)
-					{
-						sum += src.get(kernelRow, kernelCol);
-					}
-				}
-				float blurred = (float)sum / DEEP_SMOOTHING_KERNEL_SIZE / DEEP_SMOOTHING_KERNEL_SIZE;
-				float excess = 2.0F * (src.get(row, col) / blurred - 0.75F);
-				excess = std::fminf(std::fmaxf(0.0F, excess), 1.0F);
-				byte normalizedExcess = (byte)std::roundf(WHITE * excess);
-				dst.set(row, col, normalizedExcess);
-				histogram[normalizedExcess]++;
+				byte val = src.at<byte>((int)row, (int)col);
+				histogram[val]++;
 			}
 		}
 
-		for (size_t i = 0; i < 256; i++)
+		size_t modeGrayLevelIndex = 0;
+		size_t modeGrayLevelValue = 0;
+		size_t sum1GrayLevelValue = 0;
+		size_t sum2GrayLevelValue = 0;
+		for (size_t indexGrayLevel = BLACK; indexGrayLevel <= WHITE; indexGrayLevel++)
 		{
-			histogramFile << histogram[i] << std::endl;
+			size_t valueGrayLevel = histogram[indexGrayLevel];
+			if (valueGrayLevel > modeGrayLevelValue)
+			{
+				modeGrayLevelIndex = indexGrayLevel;
+				modeGrayLevelValue = valueGrayLevel;
+			}
+			sum1GrayLevelValue += valueGrayLevel;
+			sum2GrayLevelValue += valueGrayLevel * valueGrayLevel;
+			histogramFile << valueGrayLevel << std::endl;
 		}
+
+		float expectation1 = (float)sum1GrayLevelValue / pixelsNum;
+		float expectation2 = (float)sum2GrayLevelValue / pixelsNum;
+		float variance = expectation2 - expectation1 * expectation1;
+		float standatdDeviation = std::sqrtf(variance);
+
+		statisticsFile <<
+			modeGrayLevelIndex << "," <<
+			modeGrayLevelValue << "," <<
+			standatdDeviation << std::endl;
+
+		return modeGrayLevelIndex;
 	}
 
-	// EXTREMELY SLOW IN CURRENT IMPLEMENTATION
-	void calculateFourierTransform(ByteMatrix& src, ByteMatrix& dst)
+	RegressionResult calculateRegression(std::vector<float>& modeIndices, std::vector<float>& positionsZ)
 	{
-		size_t rows = src.rows();
-		size_t cols = src.cols();
-		float size = std::sqrtf((float)rows * (float)cols);
-
-		for (size_t u = 0; u < rows; u++)
+		size_t n = modeIndices.size();
+		if (positionsZ.size() != n)
 		{
-			for (size_t v = 0; v < cols; v++)
-			{
-				float re = 0.0F;
-				float im = 0.0F;
-				for (size_t row = 0; row < rows; row++)
-				{
-					for (size_t col = 0; col < cols; col++)
-					{
-						float factorRow = 2.0F * (float)std::numbers::pi * u * row / (float)rows;
-						float factorCol = 2.0F * (float)std::numbers::pi * v * col / (float)cols;
-						float val = (float)src.get(row, col);
-						re += val * std::cosf(factorRow + factorCol) / size;
-						im -= val * std::sinf(factorRow + factorCol) / size;
-					}
-				}
-				byte amp = (byte)std::fminf(std::roundf(std::sqrtf(re * re + im * im)), 255.0F);
-				dst.set(u, v, amp);
-			}
+			throw std::exception("Data sizes mismatch");
 		}
+
+		float sumX1 = 0.0F;
+		float sumX2 = 0.0F;
+		float sumY1 = 0.0F;
+		float sumXY = 0.0F;
+		for (size_t i = 0; i < n; i++)
+		{
+			sumX1 += modeIndices[i];
+			sumX2 += modeIndices[i] * modeIndices[i];
+			sumY1 += positionsZ[i];
+			sumXY += modeIndices[i] * positionsZ[i];
+		}
+
+		RegressionResult result;
+		result.slope = (n * sumXY - sumX1 * sumY1) / (n * sumX2 - sumX1 * sumX1);
+		result.offset = (sumX2 * sumY1 - sumXY * sumX1) / (n * sumX2 - sumX1 * sumX1);
+		return result;
+	}
+
+	void saveResults(std::vector<float>& positionsZ, std::vector<float>& modeIndices,
+		RegressionResult& result, const std::string& outputFolderName)
+	{
+		std::string positionsFilename = outputFolderName + "/PositionsZ.csv";
+		std::ofstream positionsFile(positionsFilename);
+		positionsFile << "Index,Z given,Z calculated" << std::endl;
+
+		for (size_t posIndex = 0; posIndex < positionsZ.size(); posIndex++)
+		{
+			float positionCalc = result.slope * modeIndices[posIndex] + result.offset;
+			positionsFile <<
+				posIndex << "," <<
+				positionsZ[posIndex] << "," <<
+				positionCalc << std::endl;
+		}
+
+		positionsFile.close();
 	}
 };
