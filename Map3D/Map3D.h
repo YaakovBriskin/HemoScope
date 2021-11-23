@@ -94,6 +94,7 @@ MAP_API void saveProjections(const std::string& outputFolderName)
 MAP_API void calculateStatistics(const std::string& imagesFolderName, const std::string& outputFolderName)
 {
 	wideImageProcessor.calculateStatistics(imagesFolderName, outputFolderName, positionsZ);
+	wideImageProcessor.calculateStatisticsHalf(imagesFolderName, outputFolderName, positionsZ);
 }
 
 MAP_API void calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
