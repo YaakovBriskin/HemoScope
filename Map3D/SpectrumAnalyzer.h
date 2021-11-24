@@ -26,7 +26,7 @@ enum AreaType
 class SpectrumAnalyzer
 {
 public:
-	RegressionResult calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName,
+	void calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName,
 		std::vector<float>& positionsZ)
 	{
 		std::filesystem::path inputFolder = std::filesystem::absolute(std::filesystem::path(imagesFolderName));
@@ -62,7 +62,6 @@ public:
 
 		RegressionResult result = calculateRegression(energyValues, positionsZ);
 		saveResults(positionsZ, energyValues, result, outputFolderName);
-		return result;
 	}
 
 private:
@@ -158,50 +157,5 @@ private:
 		}
 
 		return AreaType::NOTHING;
-	}
-
-	RegressionResult calculateRegression(std::vector<float>& energyValues, std::vector<float>& positionsZ)
-	{
-		size_t n = energyValues.size();
-		if (positionsZ.size() != n)
-		{
-			throw std::exception("Data sizes mismatch");
-		}
-
-		float sumX1 = 0.0F;
-		float sumX2 = 0.0F;
-		float sumY1 = 0.0F;
-		float sumXY = 0.0F;
-		for (size_t i = 0; i < n; i++)
-		{
-			sumX1 += energyValues[i];
-			sumX2 += energyValues[i] * energyValues[i];
-			sumY1 += positionsZ[i];
-			sumXY += energyValues[i] * positionsZ[i];
-		}
-
-		RegressionResult result;
-		result.slope = (n * sumXY - sumX1 * sumY1) / (n * sumX2 - sumX1 * sumX1);
-		result.offset = (sumX2 * sumY1 - sumXY * sumX1) / (n * sumX2 - sumX1 * sumX1);
-		return result;
-	}
-
-	void saveResults(std::vector<float>& positionsZ, std::vector<float>& energyValues,
-		RegressionResult& result, const std::string& outputFolderName)
-	{
-		std::string positionsFilename = outputFolderName + "/PositionsZ.csv";
-		std::ofstream positionsFile(positionsFilename);
-		positionsFile << "Index,Z given,Z calculated" << std::endl;
-
-		for (size_t posIndex = 0; posIndex < positionsZ.size(); posIndex++)
-		{
-			float positionCalc = result.slope * energyValues[posIndex] + result.offset;
-			positionsFile <<
-				posIndex << "," <<
-				positionsZ[posIndex] << "," <<
-				positionCalc << std::endl;
-		}
-
-		positionsFile.close();
 	}
 };

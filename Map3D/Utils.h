@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <fstream>
 #include <filesystem>
 
 typedef unsigned char byte;
@@ -87,4 +88,50 @@ void createFoldersIfNeed(const std::string& folderName, const std::string& subFo
 			throw std::exception(("Cannot create folder: " + nestedFolderName).c_str());
 		}
 	}
+}
+
+RegressionResult calculateRegression(std::vector<float>& imageMarkers, std::vector<float>& positionsZ)
+{
+	size_t n = imageMarkers.size();
+	if (positionsZ.size() != n)
+	{
+		throw std::exception("Data sizes mismatch");
+	}
+
+	float sumX1 = 0.0F;
+	float sumX2 = 0.0F;
+	float sumY1 = 0.0F;
+	float sumXY = 0.0F;
+	for (size_t i = 0; i < n; i++)
+	{
+		sumX1 += imageMarkers[i];
+		sumX2 += imageMarkers[i] * imageMarkers[i];
+		sumY1 += positionsZ[i];
+		sumXY += imageMarkers[i] * positionsZ[i];
+	}
+
+	RegressionResult result;
+	result.slope = (n * sumXY - sumX1 * sumY1) / (n * sumX2 - sumX1 * sumX1);
+	result.offset = (sumX2 * sumY1 - sumXY * sumX1) / (n * sumX2 - sumX1 * sumX1);
+	return result;
+}
+
+void saveResults(std::vector<float>& positionsZ, std::vector<float>& modeIndices,
+	RegressionResult& result, const std::string& outputFolderName, bool isHalf = false)
+{
+	std::string positionsFilename = outputFolderName + "/PositionsZ" +
+		+(isHalf ? "Half" : "") + ".csv";
+	std::ofstream positionsFile(positionsFilename);
+	positionsFile << "Index,Z given,Z calculated" << std::endl;
+
+	for (size_t posIndex = 0; posIndex < positionsZ.size(); posIndex++)
+	{
+		float positionCalc = result.slope * modeIndices[posIndex] + result.offset;
+		positionsFile <<
+			posIndex << "," <<
+			positionsZ[posIndex] << "," <<
+			positionCalc << std::endl;
+	}
+
+	positionsFile.close();
 }
