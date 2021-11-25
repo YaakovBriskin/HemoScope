@@ -10,6 +10,7 @@ class LineImageProcessor
 public:
 	void calculateGradient(std::vector<Projection>& projections, const std::string& outputFolderName)
 	{
+#ifdef _DEBUG
 		createFoldersIfNeed(outputFolderName, "Gradients");
 		size_t fileIndex = 0;
 		for (Projection projection : projections)
@@ -24,6 +25,7 @@ public:
 				throw std::exception(("Cannot write file: " + gradFilename).c_str());
 			}
 		}
+#endif
 	}
 
 	void calculateStatistics(std::vector<Projection>& projections, const std::string& outputFolderName)

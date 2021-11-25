@@ -35,7 +35,7 @@ void processFocus()
 
 int main()
 {
-    //processCapillaries();
-    processFocus();
+    processCapillaries();
+    //processFocus();
     return 0;
 }
