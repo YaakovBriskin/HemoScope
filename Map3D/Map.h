@@ -151,6 +151,9 @@ private:
 
 	Timer m_timer;
 
+	byte* md_srcBuffer;
+	byte* md_dstBuffer;
+
 private:
 	std::vector<std::vector<std::string>> readScanPositions(const std::string& folderName);
 	std::map<float, size_t> getUniqueIndexedPositions(const std::vector<std::string>& coords);

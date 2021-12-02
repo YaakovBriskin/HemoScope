@@ -72,6 +72,9 @@
     <ClInclude Include="SpectrumAnalyzer.h">
       <Filter>Locking</Filter>
     </ClInclude>
+    <ClInclude Include="UtilsCUDA.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -83,6 +86,12 @@
     <ClCompile Include="Map3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UtilsCUDA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ByteMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -90,6 +99,9 @@
   <ItemGroup>
     <CudaCompile Include="Map.cu">
       <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="CornerDetector.cu">
+      <Filter>Capillary</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

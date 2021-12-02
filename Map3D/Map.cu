@@ -2,6 +2,7 @@
 #include <iterator>
 
 #include "Utils.h"
+#include "UtilsCUDA.h"
 #include "Map.h"
 
 /*
@@ -9,7 +10,28 @@
 	===========================================
 */
 
+__global__ void stitchImage(byte* d_dstMatrix, byte* d_srcMatrix, size_t dstOffsetX, size_t dstOffsetY,
+	size_t srcOffsetX, size_t srcOffsetY, size_t dstW, size_t dstH, size_t srcW, size_t srcH, size_t maxIndexX)
+{
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
+	if ((x >= srcW) || (y >= srcH))
+	{
+		return;
+	}
+
+	// Crop destination image
+	int dstCroppedOffsetY = (int)dstOffsetY + y - maxIndexX * BIAS_Y_PIXELS;
+	if ((dstCroppedOffsetY < 0) || (dstCroppedOffsetY > dstH - 1))
+	{
+		return;
+	}
+
+	// Copy to destination image
+	byte val = d_srcMatrix[srcW * (srcOffsetY + y) + (srcOffsetX + x)];
+	d_dstMatrix[dstW * dstCroppedOffsetY + dstOffsetX + x] = val;
+}
 
 /*
 	Public Host (CPU) functions to call kernel Device (GPU) functions
@@ -25,6 +47,8 @@ Map::Map()
 	m_rows = 0;
 	m_cols = 0;
 	m_markerSize = 21;
+	md_srcBuffer = nullptr;
+	md_dstBuffer = nullptr;
 }
 
 void Map::buildMap(const std::string& folderName)
@@ -51,7 +75,11 @@ void Map::buildMap(const std::string& folderName)
 
 	// Allocate byte matrices on each layer
 	initLayes(images[0]);
-
+/*
+	// Allocate source and destination buffers on device memory
+	checkCuda(cudaMalloc(&md_srcBuffer, m_rows * m_cols));
+	checkCuda(cudaMalloc(&md_dstBuffer, m_rows * m_cols));
+*/
 	// Build stitched images on each layer
 	std::cout << "Start stitching of " << scanPositions[0].size() << " images" << std::endl;
 	m_timer.start();
@@ -271,14 +299,14 @@ std::vector<cv::Mat> Map::readImages(const std::string& folderName)
 {
 	size_t filesNum = getFilesNum(folderName);
 
-	const size_t fileNameSize = 32;
-	char fileName[fileNameSize];
+	const size_t filenameSize = 32;
+	char filename[filenameSize];
 	std::vector<cv::Mat> images;
 	for (size_t fileIndex = 0; fileIndex < filesNum; fileIndex++)
 	{
-		sprintf_s(fileName, fileNameSize, "Bright%4d.tif", (int)fileIndex);
-		std::string pathFileName = folderName + "/" + fileName;
-		cv::Mat image = cv::imread(pathFileName, cv::IMREAD_GRAYSCALE);
+		sprintf_s(filename, filenameSize, "Bright%4d.tif", (int)fileIndex);
+		std::string pathFilename = folderName + "/" + filename;
+		cv::Mat image = cv::imread(pathFilename, cv::IMREAD_GRAYSCALE);
 
 		images.push_back(image);
 		if ((fileIndex > 0) && (fileIndex % 20 == 0))
@@ -369,12 +397,49 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 
 		// Copy pixels from source to destination matrix
 		stitchSingleImage(dstMatrix, images[imageIndex], dstOffsetX, dstOffsetY, frameW, frameH);
+/*
+		//cv::Mat y2 = cv::Mat((int)m_rows, (int)m_cols, CV_8U, dstMatrix.getBuffer());
+
+		//if (imageIndex >= 144)
+		if (imageIndex == 0)
+		{
+			const size_t filenameSize = 32;
+			char filename[filenameSize];
+			sprintf_s(filename, filenameSize, "D:/tmp/Stitched%d.bmp", (int)layerIndex + 1);
+			bool result = cv::imwrite(filename, dstMatrix.asCvMatU8());
+			if (!result)
+			{
+				throw std::exception(("Cannot write file: " + std::string(filename)).c_str());
+			}
+		}
+*/
 	}
 }
 
 void Map::stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage, const size_t dstOffsetX, const size_t dstOffsetY,
 	const size_t frameW, const size_t frameH)
 {
+/*
+	// Parameters to launch parallel threads
+	dim3 blockSize(128, 1);
+	dim3 numBlocks(divideCeil((int)frameW, blockSize.x), divideCeil((int)frameH, blockSize.y), 1);
+
+	// Convert offsets from mm to pixel
+	size_t srcOffsetX = (size_t)(MARGIN_REL_X * srcImage.cols);
+	size_t srcOffsetY = (size_t)(MARGIN_REL_Y * srcImage.rows);
+
+	// Copy source image to device memory buffer for further stitching
+	checkCuda(cudaMemcpy(md_srcBuffer, srcImage.ptr(), srcImage.rows * srcImage.cols, cudaMemcpyHostToDevice));
+
+	// Apply kernel on device - no need synchronize before further processing on device
+	stitchImage<<<numBlocks, blockSize>>>(md_dstBuffer, md_srcBuffer, dstOffsetX, dstOffsetY,
+		srcOffsetX, srcOffsetY, m_cols, m_rows, frameW, frameH, m_indexedPositionsX.size() - 1);
+
+	// Get stitched image from device memory buffer
+	checkCuda(cudaMemcpy(dstMatrix.getBuffer(), md_dstBuffer, m_rows * m_cols, cudaMemcpyDeviceToHost));
+	//cv::Mat y2 = cv::Mat((int)m_rows, (int)m_cols, CV_8U, dstMatrix.getBuffer());
+*/
+
 	// Convert offsets from mm to pixel
 	size_t srcOffsetRow = (size_t)(MARGIN_REL_Y * srcImage.rows);
 	size_t srcOffsetCol = (size_t)(MARGIN_REL_X * srcImage.cols);

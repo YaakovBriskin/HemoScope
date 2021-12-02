@@ -3,9 +3,9 @@
 
 void processCapillaries()
 {
-    const std::string inputFolderName = "../ScansHiRes";
-    const std::string dataFolderName = "emc11";
-    const std::string subfolderName = "5";
+    const std::string inputFolderName = "../XYZ";
+    const std::string dataFolderName = "17";
+    const std::string subfolderName = "";
     std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
     std::string outputFolderName = "../Output/" + dataFolderName;
     if (subfolderName.size() > 0)

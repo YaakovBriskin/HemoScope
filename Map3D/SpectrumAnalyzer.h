@@ -34,14 +34,14 @@ public:
 		std::replace(absFolderName.begin(), absFolderName.end(), '/', '\\');
 		std::cout << "Input data folder:" << std::endl << absFolderName << std::endl << std::endl;
 
-		const size_t fileNameSize = 32;
-		char inputFilename[fileNameSize];
+		const size_t filenameSize = 32;
+		char inputFilename[filenameSize];
 		createFoldersIfNeed(outputFolderName, "SpectrumFFT");
 
 		std::vector<float> energyValues;
 		for (size_t fileIndex = 0; fileIndex < positionsZ.size(); fileIndex++)
 		{
-			sprintf_s(inputFilename, fileNameSize, "Bright%4d.tif", (int)fileIndex);
+			sprintf_s(inputFilename, filenameSize, "Bright%4d.tif", (int)fileIndex);
 			cv::Mat wideImage = cv::imread(imagesFolderName + "/" + inputFilename, cv::IMREAD_GRAYSCALE);
 
 			m_rows = (size_t)wideImage.rows;
