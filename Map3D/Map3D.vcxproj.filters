@@ -103,5 +103,11 @@
     <CudaCompile Include="CornerDetector.cu">
       <Filter>Capillary</Filter>
     </CudaCompile>
+    <CudaCompile Include="CapillaryProcessor.cu">
+      <Filter>Capillary</Filter>
+    </CudaCompile>
+    <CudaCompile Include="MaxRectangle.cu">
+      <Filter>Capillary</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

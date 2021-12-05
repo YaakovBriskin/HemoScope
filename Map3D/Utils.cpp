@@ -12,6 +12,21 @@ float pixels2mm(size_t pixels)
 	return (float)pixels / PIXELS_IN_MM;
 }
 
+size_t rad2deg(float angleRadians)
+{
+	return (size_t)std::roundf(angleRadians / (float)std::numbers::pi * 180.0F);
+}
+
+float deg2rad(size_t angleDegrees)
+{
+	return (float)angleDegrees / 180.0F * (float)std::numbers::pi;
+}
+
+float makeCentrosymmetric(float angleRadians)
+{
+	return angleRadians + (float)std::numbers::pi;
+}
+
 // Examine gray level to find possible capillary corner - performed on raw image
 bool isValidGrayLevelOriginal(byte val)
 {

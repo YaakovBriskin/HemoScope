@@ -63,6 +63,10 @@ void describeCapillaries(const std::string& outputFolderName)
 		}
 	}
 	std::cout << "Best layer: " << bestLayerIndex + 1 << std::endl << std::endl;
+	std::string filenameSummary = outputFolderName + "/Summary.txt";
+	std::ofstream fileSummary(filenameSummary);
+	fileSummary << "Best layer: " << bestLayerIndex + 1 << std::endl;
+	fileSummary.close();
 #ifdef _DEBUG
 	fileAllLayers.close();
 #endif

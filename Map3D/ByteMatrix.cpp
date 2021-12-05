@@ -57,5 +57,5 @@ void ByteMatrix::set(size_t row, size_t col, byte val)
 
 void ByteMatrix::clean()
 {
-	memset(m_buffer, 0xCD, m_rows * m_cols);
+	memset(m_buffer, LIGHT_GRAY, m_rows * m_cols);
 }

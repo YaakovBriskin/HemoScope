@@ -6,7 +6,6 @@ class CornerDetector
 {
 public:
 	CornerDetector();
-	~CornerDetector();
 
 	void setLayerPosition(float z);
 
@@ -26,14 +25,6 @@ private:
 	// Minimal allowed distance between detected corners
 	size_t m_minDistancePixels;
 
-	// Device memory buffers
-	byte* md_srcBuffer;
-	byte* md_dstBufferSobelGx;
-	byte* md_dstBufferSobelGy;
-	byte* md_dstBufferSobel;
-
 private:
-	void allocateDeviceBuffers(size_t rows, size_t cols);
-	void freeDeviceBuffers();
 	void writeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer);
 };

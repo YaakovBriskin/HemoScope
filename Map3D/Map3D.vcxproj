@@ -208,10 +208,12 @@
     <ClCompile Include="UtilsCUDA.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="CapillaryProcessor.cu" />
     <CudaCompile Include="CornerDetector.cu" />
     <CudaCompile Include="Map.cu">
       <FileType>Document</FileType>
     </CudaCompile>
+    <CudaCompile Include="MaxRectangle.cu" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

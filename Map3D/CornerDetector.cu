@@ -105,16 +105,6 @@ CornerDetector::CornerDetector()
 	m_croppedRows = 400;
 	m_gradientThreshold = 35;
 	m_minDistancePixels = 200;
-
-	md_srcBuffer = nullptr;
-	md_dstBufferSobelGx = nullptr;
-	md_dstBufferSobelGy = nullptr;
-	md_dstBufferSobel = nullptr;
-}
-
-CornerDetector::~CornerDetector()
-{
-	//freeDeviceBuffers();
 }
 
 void CornerDetector::setLayerPosition(float z)
@@ -137,26 +127,35 @@ std::vector<ScoredCorner> CornerDetector::getCornersSobel(Map& map, ByteMatrix& 
 	int rows = (int)matrix.rows();
 	int cols = (int)matrix.cols();
 
-	// Allocate device memory buffers and fill source device buffer by processed matrix
-	allocateDeviceBuffers(rows, cols);
-	checkCuda(cudaMemcpy(md_srcBuffer, matrix.getBuffer(), rows * cols, cudaMemcpyHostToDevice));
-
 	// Parameters to launch parallel threads
 	dim3 blockSize(128, 1);
 	dim3 numBlocks(divideCeil(cols, blockSize.x), divideCeil(rows, blockSize.y), 1);
 
-	applySobelKernel<<<numBlocks, blockSize>>>(md_srcBuffer, md_dstBufferSobelGx,
-		rows, cols, true);
-	applySobelKernel<<<numBlocks, blockSize>>>(md_srcBuffer, md_dstBufferSobelGy,
-		rows, cols, false);
-	combineSobelFilters<<<numBlocks, blockSize>>>(md_dstBufferSobelGx, md_dstBufferSobelGy,
-		md_dstBufferSobel, rows, cols);
-	checkCuda(cudaDeviceSynchronize());
+	// Device memory buffers
+	byte* d_srcBuffer = nullptr;
+	byte* d_dstBufferSobelGx = nullptr;
+	byte* d_dstBufferSobelGy = nullptr;
+	byte* d_dstBufferSobel = nullptr;
 
+	// Allocate device memory buffers and fill source device buffer by processed matrix
+	checkCuda(cudaMalloc(&d_srcBuffer, rows * cols));
+	checkCuda(cudaMalloc(&d_dstBufferSobelGx, rows * cols));
+	checkCuda(cudaMalloc(&d_dstBufferSobelGy, rows * cols));
+	checkCuda(cudaMalloc(&d_dstBufferSobel, rows * cols));
+	checkCuda(cudaMemcpy(d_srcBuffer, matrix.getBuffer(), rows * cols, cudaMemcpyHostToDevice));
+
+	// Calculate connvolutions with Sobel kernels on GPU
+	applySobelKernel<<<numBlocks, blockSize>>>(d_srcBuffer, d_dstBufferSobelGx,
+		rows, cols, true);
+	applySobelKernel<<<numBlocks, blockSize>>>(d_srcBuffer, d_dstBufferSobelGy,
+		rows, cols, false);
+	combineSobelFilters<<<numBlocks, blockSize>>>(d_dstBufferSobelGx, d_dstBufferSobelGy,
+		d_dstBufferSobel, rows, cols);
+
+	// Get calculated gradient from device memory
 	ByteMatrix gradient = ByteMatrix(rows, cols);
-	checkCuda(cudaMemcpy(gradient.getBuffer(), md_dstBufferSobel, rows * cols, cudaMemcpyDeviceToHost));
-	//cv::Mat y3 = cv::Mat(rows, cols, CV_8U, gradient.getBuffer());
-	//cv::imwrite("D:/tmp/Gradient.bmp", gradient.asCvMatU8());
+	checkCuda(cudaMemcpy(gradient.getBuffer(), d_dstBufferSobel, rows * cols, cudaMemcpyDeviceToHost));
+	checkCuda(cudaDeviceSynchronize());
 
 	for (size_t row = halfKernelSize; row < rows - m_croppedRows - halfKernelSize; row++)
 	{
@@ -238,6 +237,11 @@ std::vector<ScoredCorner> CornerDetector::getCornersSobel(Map& map, ByteMatrix& 
 		return cornerL.score > cornerR.score;
 	});
 
+	checkCuda(cudaFree(d_srcBuffer));
+	checkCuda(cudaFree(d_dstBufferSobelGx));
+	checkCuda(cudaFree(d_dstBufferSobelGy));
+	checkCuda(cudaFree(d_dstBufferSobel));
+
 #ifdef _DEBUG
 	std::string filenameGradient = capillariesFolderName + "/Gradient" + std::to_string(layerIndex + 1) + ".bmp";
 	cv::imwrite(filenameGradient, gradient.asCvMatU8());
@@ -251,52 +255,6 @@ std::vector<ScoredCorner> CornerDetector::getCornersSobel(Map& map, ByteMatrix& 
 	Private Host (CPU) functions to call kernel Device (GPU) functions
 	==================================================================
 */
-
-void CornerDetector::allocateDeviceBuffers(size_t rows, size_t cols)
-{
-	if (md_srcBuffer == nullptr)
-	{
-		checkCuda(cudaMalloc(&md_srcBuffer, rows * cols));
-	}
-
-	if (md_dstBufferSobelGx == nullptr)
-	{
-		checkCuda(cudaMalloc(&md_dstBufferSobelGx, rows * cols));
-	}
-
-	if (md_dstBufferSobelGy == nullptr)
-	{
-		checkCuda(cudaMalloc(&md_dstBufferSobelGy, rows * cols));
-	}
-
-	if (md_dstBufferSobel == nullptr)
-	{
-		checkCuda(cudaMalloc(&md_dstBufferSobel, rows * cols));
-	}
-}
-
-void CornerDetector::freeDeviceBuffers()
-{
-	if (md_srcBuffer != nullptr)
-	{
-		checkCuda(cudaFree(md_srcBuffer));
-	}
-
-	if (md_dstBufferSobelGx != nullptr)
-	{
-		checkCuda(cudaFree(md_dstBufferSobelGx));
-	}
-
-	if (md_dstBufferSobelGy != nullptr)
-	{
-		checkCuda(cudaFree(md_dstBufferSobelGy));
-	}
-
-	if (md_dstBufferSobel != nullptr)
-	{
-		checkCuda(cudaFree(md_dstBufferSobel));
-	}
-}
 
 void CornerDetector::writeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer)
 {

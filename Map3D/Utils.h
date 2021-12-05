@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <numbers>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -17,6 +18,7 @@ struct RegressionResult
 const byte BLACK = 0;
 const byte DELIM = 128;
 const byte WHITE = 255;
+const byte LIGHT_GRAY = 0xCD;
 
 // Size of the kernel to find corners
 const size_t CORNER_DETECTION_KERNEL_SIZE = 3;
@@ -33,6 +35,9 @@ const std::string Z_POS_FILENAME = "TF_vec_col.csv";
 
 size_t mm2pixels(float mm);
 float pixels2mm(size_t pixels);
+size_t rad2deg(float angleRadians);
+float deg2rad(size_t angleDegrees);
+float makeCentrosymmetric(float angleRadians);
 bool isValidGrayLevelOriginal(byte val);
 bool isValidGrayLevelProcessed(byte val);
 std::string toString(const float val, const int n = 3);
