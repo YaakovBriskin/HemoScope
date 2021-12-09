@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HemoScope name="Capillaries measurement automation">
+	<Input>
+	</Input>
+	<Output>
+	</Output>
+	<Procedures>
+		<Stitching description="Stitch images by layers according to scan positions">
+			<Image description="Parametets of each stitched image">
+				<BiasPixels>
+					<X>50</X>
+					<Y>70</Y>
+				</BiasPixels>
+				<MarginRate>
+					<X>0.1</X>
+					<Y>0.2</Y>
+				</MarginRate>
+				<FrameRate>
+					<X>0.5</X>
+					<Y>1.0</Y>
+				</FrameRate>
+			</Image>
+		</Stitching>
+		<Identification>
+		</Identification>
+		<Characterization>
+		</Characterization>
+		<Focusing>
+		</Focusing>
+	</Procedures>
+</HemoScope>

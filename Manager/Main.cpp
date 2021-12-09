@@ -35,6 +35,7 @@ void processFocus()
 
 int main()
 {
+    loadConfig("../Config/Config.xml");
     processCapillaries();
     //processFocus();
     return 0;

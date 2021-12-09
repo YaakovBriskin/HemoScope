@@ -1,5 +1,6 @@
 #include "Map3D.h"
 
+Config config;
 Map map;
 LayerScanner layerScanner;
 std::vector<LayerInfo> layersWithCapillaries;
@@ -9,6 +10,15 @@ WideImageProcessor wideImageProcessor;
 SpectrumAnalyzer spectrumAnalyzer;
 Sequence sequence;
 std::vector<float> positionsZ;
+
+void loadConfig(std::string configFilename)
+{
+	bool loadResult = config.load(configFilename);
+	if (!loadResult)
+	{
+		std::cout << "Cannot load config file: " << configFilename << std::endl << std::endl;
+	}
+}
 
 void buildMap(const std::string& folderName)
 {

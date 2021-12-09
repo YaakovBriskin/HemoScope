@@ -16,7 +16,7 @@
 
 const std::string SCAN_POS_FILENAME = "Scan_positions.csv";
 
-const size_t BIAS_X_PIXELS =  70;
+const size_t BIAS_X_PIXELS = 70;
 const size_t BIAS_Y_PIXELS = 0;
 
 const float MARGIN_REL_X = 0.2F;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MapAPI.h"
+#include "Config.h"
 #include "LayerScanner.h"
 #include "CapillaryProcessor.h"
 #include "Sequence.h"
@@ -8,6 +9,7 @@
 #include "WideImageProcessor.h"
 #include "SpectrumAnalyzer.h"
 
+MAP_API void loadConfig(std::string configFilename);
 MAP_API void buildMap(const std::string& folderName);
 MAP_API void printValueAtTruncatedPos(float x, float y, float z);
 MAP_API void saveStiched(const std::string& outputFolderName);

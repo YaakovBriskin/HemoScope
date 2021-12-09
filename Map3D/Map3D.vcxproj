@@ -125,7 +125,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Opteamizer.OpenCV.4.2.0-customized.1.0.0\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\boost.1.77.0.0\lib\native\include;$(SolutionDir)packages\Opteamizer.OpenCV.4.2.0-customized.1.0.0\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -154,7 +154,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)packages\Opteamizer.OpenCV.4.2.0-customized.1.0.0\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)packages\boost.1.77.0.0\lib\native\include;$(SolutionDir)packages\Opteamizer.OpenCV.4.2.0-customized.1.0.0\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -178,6 +178,7 @@
   <ItemGroup>
     <ClInclude Include="ByteMatrix.h" />
     <ClInclude Include="CapillaryProcessor.h" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="CornerDetector.h" />
     <ClInclude Include="LayerScanner.h" />
     <ClInclude Include="LineImageProcessor.h" />
@@ -197,6 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ByteMatrix.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="Map3D.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
