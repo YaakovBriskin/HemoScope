@@ -49,7 +49,7 @@ void Map::buildMap(const std::string& folderName)
 		m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
 
 	// Allocate byte matrices on each layer
-	initLayes(images[0]);
+	initLayers(images[0]);
 
 	// Build stitched images on each layer
 	std::cout << "Start stitching of " << scanPositions[0].size() << " images" << std::endl;
@@ -289,7 +289,7 @@ std::vector<cv::Mat> Map::readImages(const std::string& folderName)
 	return images;
 }
 
-void Map::initLayes(const cv::Mat& firstImage)
+void Map::initLayers(const cv::Mat& firstImage)
 {
 	m_cols = (size_t)((mm2pixels(m_stepXmm) + BIAS_X_PIXELS) * (m_indexedPositionsX.size() - 1) +
 		FRAME_REL_W * firstImage.cols);

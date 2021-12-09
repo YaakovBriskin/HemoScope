@@ -12,7 +12,6 @@ class ByteMatrix
 public:
 	ByteMatrix();
 	ByteMatrix(const size_t rows, const size_t cols);
-	~ByteMatrix();
 	size_t rows();
 	size_t cols();
 	byte* getBuffer();
@@ -24,5 +23,5 @@ public:
 protected:
 	size_t m_rows;
 	size_t m_cols;
-	byte* m_buffer;
+	std::shared_ptr<byte[]> m_buffer;
 };

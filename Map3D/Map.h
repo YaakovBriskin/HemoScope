@@ -155,7 +155,7 @@ private:
 	std::vector<std::vector<std::string>> readScanPositions(const std::string& folderName);
 	std::map<float, size_t> getUniqueIndexedPositions(const std::vector<std::string>& coords);
 	std::vector<cv::Mat> readImages(const std::string& folderName);
-	void initLayes(const cv::Mat& firstImage);
+	void initLayers(const cv::Mat& firstImage);
 	void stitchImages(const std::vector<std::vector<std::string>>& scanPositions, const std::vector<cv::Mat>& images);
 	void stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage, const size_t dstOffsetX, const size_t dstOffsetY,
 		const size_t frameW, const size_t frameH);

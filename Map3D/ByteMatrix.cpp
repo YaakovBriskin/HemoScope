@@ -17,12 +17,7 @@ ByteMatrix::ByteMatrix(const size_t rows, const size_t cols)
 		m_buffer = nullptr;
 		return;
 	}
-	m_buffer = new byte[m_rows * m_cols];
-}
-
-ByteMatrix::~ByteMatrix()
-{
-	//delete[] m_buffer;
+	m_buffer = std::make_shared<byte[]>(m_rows * m_cols);
 }
 
 size_t ByteMatrix::rows()
@@ -37,12 +32,12 @@ size_t ByteMatrix::cols()
 
 byte* ByteMatrix::getBuffer()
 {
-	return m_buffer;
+	return m_buffer.get();
 }
 
 cv::Mat ByteMatrix::asCvMatU8()
 {
-	return cv::Mat((int)m_rows, (int)m_cols, CV_8U, m_buffer);
+	return cv::Mat((int)m_rows, (int)m_cols, CV_8U, m_buffer.get());
 }
 
 byte ByteMatrix::get(size_t row, size_t col)
@@ -57,5 +52,5 @@ void ByteMatrix::set(size_t row, size_t col, byte val)
 
 void ByteMatrix::clean()
 {
-	memset(m_buffer, LIGHT_GRAY, m_rows * m_cols);
+	memset(m_buffer.get(), LIGHT_GRAY, m_rows * m_cols);
 }
