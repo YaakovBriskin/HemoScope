@@ -14,17 +14,6 @@
 #include "Point3D.h"
 #include "ByteMatrix.h"
 
-const std::string SCAN_POS_FILENAME = "Scan_positions.csv";
-
-const size_t BIAS_X_PIXELS = 70;
-const size_t BIAS_Y_PIXELS = 0;
-
-const float MARGIN_REL_X = 0.2F;
-const float MARGIN_REL_Y = 0.0F;
-
-const float FRAME_REL_W = 0.5F;
-const float FRAME_REL_H = 1.0F;
-
 class Layer
 {
 public:
@@ -119,7 +108,7 @@ public:
 	Map();
 	~Map() = default;
 
-	void buildMap(const std::string& folderName);
+	void buildMap(const std::string& folderName, Config& config);
 	void printValueAtTruncatedPos(float x, float y, float z);
 	void saveStiched(std::vector<LayerInfo>& layersWithCapillaries, const std::string& outputFolderName);
 	bool isOnSeam(size_t posPixels, bool isRow);
@@ -134,6 +123,16 @@ private:
 	std::map<float, size_t> m_indexedPositionsY;
 	std::map<float, size_t> m_indexedPositionsZ;
 
+	// Parameters from configuration
+	std::string m_scanPosFilename;
+	size_t m_markerCornerSize;
+	size_t m_imageBiasPixelsX;
+	size_t m_imageBiasPixelsY;
+	float m_imageMarginRelativeX;
+	float m_imageMarginRelativeY;
+	float m_imageFrameRelativeW;
+	float m_imageFrameRelativeH;
+
 	float m_startXmm;
 	float m_startYmm;
 
@@ -143,22 +142,20 @@ private:
 	size_t m_rows;
 	size_t m_cols;
 
-	// Marker of corners: for debugging purpose only
-	size_t m_markerSize;
-
 	std::vector<size_t> m_seamRows;
 	std::vector<size_t> m_seamCols;
 
 	Timer m_timer;
 
 private:
+	void initConfig(Config& config);
 	std::vector<std::vector<std::string>> readScanPositions(const std::string& folderName);
 	std::map<float, size_t> getUniqueIndexedPositions(const std::vector<std::string>& coords);
 	std::vector<cv::Mat> readImages(const std::string& folderName);
 	void initLayers(const cv::Mat& firstImage);
 	void stitchImages(const std::vector<std::vector<std::string>>& scanPositions, const std::vector<cv::Mat>& images);
-	void stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage, const size_t dstOffsetX, const size_t dstOffsetY,
-		const size_t frameW, const size_t frameH);
+	void stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage,
+		const size_t dstOffsetX, const size_t dstOffsetY, const size_t frameW, const size_t frameH);
 	void copyScanPosFile(const std::string& scanPosFolderName, const std::string& outputFolderName);
 
 	// For debugging purpose only

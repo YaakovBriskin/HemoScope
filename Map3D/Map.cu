@@ -17,25 +17,36 @@
 
 Map::Map()
 {
+	m_scanPosFilename.clear();
+	m_markerCornerSize = 0;
+	m_imageBiasPixelsX = 0;
+	m_imageBiasPixelsY = 0;
+	m_imageMarginRelativeX = 0.0F;
+	m_imageMarginRelativeY = 0.0F;
+	m_imageFrameRelativeW = 0.0F;
+	m_imageFrameRelativeH = 0.0F;
+
 	m_startXmm = 0.0F;
 	m_startYmm = 0.0F;
 	m_stepXmm = 0.0F;
 	m_stepYmm = 0.0F;
 	m_rows = 0;
 	m_cols = 0;
-	m_markerSize = 21;
 }
 
-void Map::buildMap(const std::string& folderName)
+void Map::buildMap(const std::string& folderName, Config& config)
 {
 #ifdef _DEBUG
-	std::string config = "DEBUG";
+	std::string buildConfig = "DEBUG";
 #else
-	std::string config = "RELEASE";
+	std::string buildConfig = "RELEASE";
 #endif
-	std::cout << "Build 3D map in " << config << " configuration" << std::endl << std::endl;
+	std::cout << "Build 3D map in " << buildConfig << " configuration" << std::endl << std::endl;
 	std::string absFolderName = getAbsFolderName(folderName);
 	std::cout << "Input data folder:" << std::endl << absFolderName << std::endl << std::endl;
+
+	// Get parameters from configuration
+	initConfig(config);
 
 	// Vector of X-Y-Z coordinates
 	std::vector<std::vector<std::string>> scanPositions = readScanPositions(folderName);
@@ -187,10 +198,23 @@ float Map::getStartYmm()
 	==================================================================
 */
 
+void Map::initConfig(Config& config)
+{
+	// Get parameters from configuration
+	m_scanPosFilename		= config.getStringValue(keyScanPosFilename);
+	m_markerCornerSize		= (size_t)config.getIntValue(keyMarkerCornerSize);
+	m_imageBiasPixelsX		= (size_t)config.getIntValue(keyImageBiasPixelsX);
+	m_imageBiasPixelsY		= (size_t)config.getIntValue(keyImageBiasPixelsY);
+	m_imageMarginRelativeX	= config.getFloatValue(keyImageMarginRelX);
+	m_imageMarginRelativeY	= config.getFloatValue(keyImageMarginRelY);
+	m_imageFrameRelativeW	= config.getFloatValue(keyImageFrameRelW);
+	m_imageFrameRelativeH	= config.getFloatValue(keyImageFrameRelH);
+}
+
 std::vector<std::vector<std::string>> Map::readScanPositions(const std::string& folderName)
 {
 	// Open file with scan positions
-	std::string scanPosPathFilename = folderName + "/" + SCAN_POS_FILENAME;
+	std::string scanPosPathFilename = folderName + "/" + m_scanPosFilename;
 	std::ifstream scanPosFile(scanPosPathFilename);
 
 	// Parse scan positions into intermediate array of X-Y-Z coordinates
@@ -291,10 +315,10 @@ std::vector<cv::Mat> Map::readImages(const std::string& folderName)
 
 void Map::initLayers(const cv::Mat& firstImage)
 {
-	m_cols = (size_t)((mm2pixels(m_stepXmm) + BIAS_X_PIXELS) * (m_indexedPositionsX.size() - 1) +
-		FRAME_REL_W * firstImage.cols);
+	m_cols = (size_t)((mm2pixels(m_stepXmm) + m_imageBiasPixelsX) * (m_indexedPositionsX.size() - 1) +
+		m_imageFrameRelativeW * firstImage.cols);
 	m_rows = (size_t)(mm2pixels(m_stepYmm) * (m_indexedPositionsY.size() - 1) +
-		FRAME_REL_H * firstImage.rows - 2 * (m_indexedPositionsX.size() - 1) * BIAS_Y_PIXELS);
+		m_imageFrameRelativeH * firstImage.rows - 2 * (m_indexedPositionsX.size() - 1) * m_imageBiasPixelsY);
 	for (std::pair<float, size_t> indexedPositionZ : m_indexedPositionsZ)
 	{
 		float z = indexedPositionZ.first;
@@ -303,10 +327,11 @@ void Map::initLayers(const cv::Mat& firstImage)
 	}
 }
 
-void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPositions, const std::vector<cv::Mat>& images)
+void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPositions,
+	const std::vector<cv::Mat>& images)
 {
 	// Convert steps from mm to pixels and add preliminarly known biases if need
-	const size_t stepPixelsX = mm2pixels(m_stepXmm) + BIAS_X_PIXELS;
+	const size_t stepPixelsX = mm2pixels(m_stepXmm) + m_imageBiasPixelsX;
 	const size_t stepPixelsY = mm2pixels(m_stepYmm);
 
 	// Positions by coordinates
@@ -315,8 +340,10 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 	const std::vector<std::string>& positionsZ = scanPositions[2];
 
 	// Store start position with initial margins for further calculation of capillaries positions
-	m_startXmm = (float)atof(positionsX[0].c_str()) + pixels2mm((size_t)(MARGIN_REL_X * images[0].cols));
-	m_startYmm = (float)atof(positionsY[0].c_str()) + pixels2mm((size_t)(MARGIN_REL_Y * images[0].rows));
+	m_startXmm = (float)atof(positionsX[0].c_str()) +
+		pixels2mm((size_t)(m_imageMarginRelativeX * images[0].cols));
+	m_startYmm = (float)atof(positionsY[0].c_str()) +
+		pixels2mm((size_t)(m_imageMarginRelativeY * images[0].rows));
 
 	// For all positions and corresponding images
 	for (size_t imageIndex = 0; imageIndex < images.size(); imageIndex++)
@@ -332,7 +359,7 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 
 		// Calculate offsets in the desination image and store to skip unwanted corners on seams
 		size_t dstOffsetX = stepPixelsX * indexX;
-		size_t dstOffsetY = stepPixelsY * indexY + BIAS_Y_PIXELS * indexX;
+		size_t dstOffsetY = stepPixelsY * indexY + m_imageBiasPixelsY * indexX;
 
 		// Store all cols in kernel neighborhood to avoid false-positive corners around seams
 		if ((dstOffsetX > 0) && !isOnSeam(dstOffsetX, false))
@@ -355,12 +382,12 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 		// Frame width is non-onerlapped vertical area for all frames before last or whole last frame
 		size_t frameW = (indexX < m_indexedPositionsX.size() - 1) ?
 			stepPixelsX :
-			(size_t)(FRAME_REL_W * images[imageIndex].cols);
+			(size_t)(m_imageFrameRelativeW * images[imageIndex].cols);
 
 		// Frame height is non-onerlapped horizontal area for all frames before last or whole last frame
 		size_t frameH = (indexY < m_indexedPositionsY.size() - 1) ?
 			stepPixelsY :
-			(size_t)(FRAME_REL_H * images[imageIndex].rows);
+			(size_t)(m_imageFrameRelativeH * images[imageIndex].rows);
 
 		// Select destination layer according to z
 		size_t layerIndex = m_indexedPositionsZ[z];
@@ -371,18 +398,19 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 	}
 }
 
-void Map::stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage, const size_t dstOffsetX, const size_t dstOffsetY,
-	const size_t frameW, const size_t frameH)
+void Map::stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage,
+	const size_t dstOffsetX, const size_t dstOffsetY, const size_t frameW, const size_t frameH)
 {
 	// Convert offsets from mm to pixel
-	size_t srcOffsetRow = (size_t)(MARGIN_REL_Y * srcImage.rows);
-	size_t srcOffsetCol = (size_t)(MARGIN_REL_X * srcImage.cols);
+	size_t srcOffsetRow = (size_t)(m_imageMarginRelativeY * srcImage.rows);
+	size_t srcOffsetCol = (size_t)(m_imageMarginRelativeX * srcImage.cols);
 
 	// For all rows in the source frame
 	for (size_t srcRow = 0; srcRow < frameH; srcRow++)
 	{
 		// Crop destination image
-		int dstOffsetRow = (int)(dstOffsetY + srcRow) - (int)((m_indexedPositionsX.size() - 1) * BIAS_Y_PIXELS);
+		int dstOffsetRow = (int)(dstOffsetY + srcRow) -
+			(int)((m_indexedPositionsX.size() - 1) * m_imageBiasPixelsY);
 		if ((dstOffsetRow < 0) || (dstOffsetRow > m_rows - 1))
 		{
 			continue;
@@ -399,8 +427,8 @@ void Map::stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage, cons
 
 void Map::copyScanPosFile(const std::string& scanPosFolderName, const std::string& outputFolderName)
 {
-	std::string scanPosSrcPathFilename = scanPosFolderName + "/" + SCAN_POS_FILENAME;
-	std::string scanPosDstPathFilename = outputFolderName + "/Stitched/" + SCAN_POS_FILENAME;
+	std::string scanPosSrcPathFilename = scanPosFolderName + "/" + m_scanPosFilename;
+	std::string scanPosDstPathFilename = outputFolderName + "/Stitched/" + m_scanPosFilename;
 	copyFile(scanPosSrcPathFilename, scanPosDstPathFilename);
 }
 
@@ -408,7 +436,7 @@ void Map::copyScanPosFile(const std::string& scanPosFolderName, const std::strin
 void Map::markCorners(ByteMatrix& matrix, std::vector<ScoredCorner>& scoredCorners)
 {
 	// Number of pixels around the central pixel for valid marker odd sizes
-	size_t halfMarkerSize = m_markerSize / 2;
+	size_t halfMarkerSize = m_markerCornerSize / 2;
 
 	for (const ScoredCorner& scoredCorner : scoredCorners)
 	{

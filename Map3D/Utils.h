@@ -8,6 +8,8 @@
 #include <iostream>
 #include <filesystem>
 
+#include "Config.h"
+
 typedef unsigned char byte;
 
 struct RegressionResult

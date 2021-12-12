@@ -22,7 +22,7 @@ void loadConfig(std::string configFilename)
 
 void buildMap(const std::string& folderName)
 {
-	map.buildMap(folderName);
+	map.buildMap(folderName, config);
 }
 
 void printValueAtTruncatedPos(float x, float y, float z)

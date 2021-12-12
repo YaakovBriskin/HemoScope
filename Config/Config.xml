@@ -6,19 +6,21 @@
 	</Output>
 	<Procedures>
 		<Stitching description="Stitch images by layers according to scan positions">
+			<ScanPosFile>Scan_positions.csv</ScanPosFile>
+			<MarkerCornerSize>21</MarkerCornerSize>
 			<Image description="Parametets of each stitched image">
 				<BiasPixels>
-					<X>50</X>
-					<Y>70</Y>
+					<X>70</X>
+					<Y>0</Y>
 				</BiasPixels>
-				<MarginRate>
-					<X>0.1</X>
-					<Y>0.2</Y>
-				</MarginRate>
-				<FrameRate>
-					<X>0.5</X>
-					<Y>1.0</Y>
-				</FrameRate>
+				<MarginRelative>
+					<X>0.2</X>
+					<Y>0.0</Y>
+				</MarginRelative>
+				<FrameRelative>
+					<Width>0.5</Width>
+					<Height>1.0</Height>
+				</FrameRelative>
 			</Image>
 		</Stitching>
 		<Identification>

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MapAPI.h"
-#include "Config.h"
 #include "LayerScanner.h"
 #include "CapillaryProcessor.h"
 #include "Sequence.h"
