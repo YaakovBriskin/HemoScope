@@ -10,12 +10,12 @@
 
 MAP_API void loadConfig(std::string configFilename);
 MAP_API void initGeneralData();
-MAP_API void buildMap(const std::string& folderName);
+MAP_API void buildMap();
 MAP_API void printValueAtTruncatedPos(float x, float y, float z);
-MAP_API void saveStiched(const std::string& outputFolderName);
-MAP_API void detectCapillaries(const std::string& outputFolderName);
-MAP_API void describeCapillaries(const std::string& outputFolderName);
-MAP_API void loadPositionsZ(const std::string& folderName);
-MAP_API void buildSequence(const std::string& folderName);
-MAP_API void saveProjections(const std::string& outputFolderName);
-MAP_API void calculateDepth(const std::string& imagesFolderName, const std::string& outputFolderName);
+MAP_API void saveStiched();
+MAP_API void detectCapillaries();
+MAP_API void describeCapillaries();
+MAP_API void loadPositionsZ();
+MAP_API void buildSequence();
+MAP_API void saveProjections();
+MAP_API void calculateDepth();

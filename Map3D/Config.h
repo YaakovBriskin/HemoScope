@@ -5,6 +5,13 @@
 #include <string>
 
 const std::string keyPixelsInMm					= "HemoScope.General.PixelsInMm";
+const std::string keyInputMapFolder				= "HemoScope.Input.Map.Folder";
+const std::string keyInputMapDataFolder			= "HemoScope.Input.Map.DataFolder";
+const std::string keyInputMapSubfolder			= "HemoScope.Input.Map.Subfolder";
+const std::string keyInputLockFolder			= "HemoScope.Input.Lock.Folder";
+const std::string keyInputLockDataFolder		= "HemoScope.Input.Lock.DataFolder";
+const std::string keyInputLockSubfolder			= "HemoScope.Input.Lock.Subfolder";
+const std::string keyOutputFolder				= "HemoScope.Output.Folder";
 const std::string keyScanPosFilename			= "HemoScope.Procedures.Stitching.ScanPosFile";
 const std::string keyMarkerCornerSize			= "HemoScope.Procedures.Stitching.MarkerCornerSize";
 const std::string keyImageBiasPixelsX			= "HemoScope.Procedures.Stitching.Image.BiasPixels.X";
