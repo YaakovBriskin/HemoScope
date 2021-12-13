@@ -7,10 +7,9 @@
 	===========================================
 */
 
-__global__ void applyHPF(byte* d_srcMatrix, byte* d_dstMatrix, int rows, int cols)
+__global__ void applyHPF(byte* d_srcMatrix, byte* d_dstMatrix, int rows, int cols,
+	size_t deepSmoothingKernelSize)
 {
-	const size_t halfKernelSize = DEEP_SMOOTHING_KERNEL_SIZE / 2;
-
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -18,6 +17,8 @@ __global__ void applyHPF(byte* d_srcMatrix, byte* d_dstMatrix, int rows, int col
 	{
 		return;
 	}
+
+	const size_t halfKernelSize = deepSmoothingKernelSize / 2;
 
 	// Skip margins with zeroing of result
 	if ((x < halfKernelSize) ||
@@ -38,7 +39,7 @@ __global__ void applyHPF(byte* d_srcMatrix, byte* d_dstMatrix, int rows, int col
 			sum += d_srcMatrix[kernelRow * cols + kernelCol];
 		}
 	}
-	float blurred = (float)sum / DEEP_SMOOTHING_KERNEL_SIZE / DEEP_SMOOTHING_KERNEL_SIZE;
+	float blurred = (float)sum / deepSmoothingKernelSize / deepSmoothingKernelSize;
 	float excess = 2.0F * (d_srcMatrix[y * cols + x] / blurred - 0.75F);
 
 	if (excess < 0.0F)
@@ -61,9 +62,20 @@ __global__ void applyHPF(byte* d_srcMatrix, byte* d_dstMatrix, int rows, int col
 
 CapillaryProcessor::CapillaryProcessor()
 {
+	m_fineSmoothingKernelSize = 0;
+	m_deepSmoothingKernelSize = 0;
+	m_numDescribedCappilaries = 0;
+	m_minPixelsInCappilary = 0;
+	m_surroundingPixels = 0;
+
 	m_originalMatrix = ByteMatrix();
 	m_processedMatrix = ByteMatrix();
 	m_layerIndex = 0;
+}
+
+void CapillaryProcessor::init(Config& config)
+{
+	initConfig(config);
 }
 
 void CapillaryProcessor::describeCapillaries(Map& map, LayerInfo& layerInfo, const std::string& outputFolderName)
@@ -117,7 +129,7 @@ void CapillaryProcessor::describeCapillaries(Map& map, LayerInfo& layerInfo, con
 		performTraversalBFS(cornerRow, cornerCol, map, capillaryInfo);
 
 		// Skip too sparse capillary
-		if (capillaryInfo.pixelsCapillary < MIN_PIXELS_IN_CAPILLARY)
+		if (capillaryInfo.pixelsCapillary < m_minPixelsInCappilary)
 		{
 			continue;
 		}
@@ -197,6 +209,16 @@ void CapillaryProcessor::describeCapillaries(Map& map, LayerInfo& layerInfo, con
 	==================================================================
 */
 
+void CapillaryProcessor::initConfig(Config& config)
+{
+	// Get parameters from configuration
+	m_fineSmoothingKernelSize	= (size_t)config.getIntValue(keyFineSmoothingKernelSize);
+	m_deepSmoothingKernelSize	= (size_t)config.getIntValue(keyDeepSmoothingKernelSize);
+	m_numDescribedCappilaries	= (size_t)config.getIntValue(keyNumDescribedCappilaries);
+	m_minPixelsInCappilary		= (size_t)config.getIntValue(keyMinPixelsInCappilary);
+	m_surroundingPixels			= (size_t)config.getIntValue(keySurroundingPixels);
+}
+
 void CapillaryProcessor::performGaussianBlur(ByteMatrix& src, ByteMatrix& dst)
 {
 	size_t rows = src.rows();
@@ -230,7 +252,7 @@ void CapillaryProcessor::performUniformSmoothing(ByteMatrix& src, ByteMatrix& ds
 	size_t rows = src.rows();
 	size_t cols = src.cols();
 
-	const size_t halfKernelSize = FINE_SMOOTHING_KERNEL_SIZE / 2;
+	const size_t halfKernelSize = m_fineSmoothingKernelSize / 2;
 
 	// For each row in the source matrix
 	for (size_t row = 0; row < rows; row++)
@@ -255,7 +277,7 @@ void CapillaryProcessor::performUniformSmoothing(ByteMatrix& src, ByteMatrix& ds
 					sum += src.get(kernelRow, kernelCol);
 				}
 			}
-			float smoothed = (float)sum / FINE_SMOOTHING_KERNEL_SIZE / FINE_SMOOTHING_KERNEL_SIZE;
+			float smoothed = (float)sum / m_fineSmoothingKernelSize / m_fineSmoothingKernelSize;
 			byte smoothedPixel = (byte)std::roundf(smoothed);
 			dst.set(row, col, smoothedPixel);
 		}
@@ -283,7 +305,8 @@ void CapillaryProcessor::performExcessFiltering(ByteMatrix& src, ByteMatrix& dst
 	checkCuda(cudaMemcpy(d_srcBuffer, src.getBuffer(), rows * cols, cudaMemcpyHostToDevice));
 
 	// Calculate excess on GPU
-	applyHPF<<<numBlocks, blockSize>>>(d_srcBuffer, d_dstBuffer, (int)rows, (int)cols);
+	applyHPF<<<numBlocks, blockSize>>>(d_srcBuffer, d_dstBuffer, (int)rows, (int)cols,
+		m_deepSmoothingKernelSize);
 	checkCuda(cudaDeviceSynchronize());
 
 	// Get calculated excess from device memory and free it
@@ -340,28 +363,28 @@ void CapillaryProcessor::performTraversalBFS(size_t row, size_t col, Map& map, C
 		processPixel(pixelPos, capillaryInfo);
 
 		// Enqueue the pixel from (row - 1) if row is in limits and gray level of the pixel is valid
-		if ((pixelPos.pixelRow > DEEP_SMOOTHING_KERNEL_SIZE) &&
+		if ((pixelPos.pixelRow > m_deepSmoothingKernelSize) &&
 			isValidGrayLevelProcessed(m_processedMatrix.get(pixelPos.pixelRow - 1, pixelPos.pixelCol)))
 		{
 			pixels.push(PixelPos(pixelPos.pixelRow - 1, pixelPos.pixelCol));
 		}
 
 		// Enqueue the pixel from (row + 1) if row is in limits and gray level of the pixel is valid
-		if ((pixelPos.pixelRow < m_processedMatrix.rows() - DEEP_SMOOTHING_KERNEL_SIZE) &&
+		if ((pixelPos.pixelRow < m_processedMatrix.rows() - m_deepSmoothingKernelSize) &&
 			isValidGrayLevelProcessed(m_processedMatrix.get(pixelPos.pixelRow + 1, pixelPos.pixelCol)))
 		{
 			pixels.push(PixelPos(pixelPos.pixelRow + 1, pixelPos.pixelCol));
 		}
 
 		// Enqueue the pixel from (col - 1) if col is in limits and gray level of the pixel is valid
-		if ((pixelPos.pixelCol > DEEP_SMOOTHING_KERNEL_SIZE) &&
+		if ((pixelPos.pixelCol > m_deepSmoothingKernelSize) &&
 			isValidGrayLevelProcessed(m_processedMatrix.get(pixelPos.pixelRow, pixelPos.pixelCol - 1)))
 		{
 			pixels.push(PixelPos(pixelPos.pixelRow, pixelPos.pixelCol - 1));
 		}
 
 		// Enqueue the pixel from (col + 1) if col is in limits and gray level of the pixel is valid
-		if ((pixelPos.pixelCol < m_processedMatrix.cols() - DEEP_SMOOTHING_KERNEL_SIZE) &&
+		if ((pixelPos.pixelCol < m_processedMatrix.cols() - m_deepSmoothingKernelSize) &&
 			isValidGrayLevelProcessed(m_processedMatrix.get(pixelPos.pixelRow, pixelPos.pixelCol + 1)))
 		{
 			pixels.push(PixelPos(pixelPos.pixelRow, pixelPos.pixelCol + 1));
@@ -387,18 +410,16 @@ void CapillaryProcessor::processPixel(const PixelPos& pixelPos, CapillaryInfo& c
 
 void CapillaryProcessor::collectSurroundings(std::vector<CapillaryInfo>& capillariesInfo)
 {
-	const size_t surroundingPixels = 10;
-
 	// Accumulate number of pixels and sum of gray levels in surrounding rectangles of each capillary
 	for (CapillaryInfo& capillaryInfo : capillariesInfo)
 	{
-		if (capillaryInfo.pixelsCapillary < MIN_PIXELS_IN_CAPILLARY)
+		if (capillaryInfo.pixelsCapillary < m_minPixelsInCappilary)
 		{
 			continue;
 		}
 
 		// Rectangle at up
-		size_t rectUpUp = std::max((int)capillaryInfo.limitUp - (int)surroundingPixels, 0);
+		size_t rectUpUp = std::max((int)capillaryInfo.limitUp - (int)m_surroundingPixels, 0);
 		size_t rectUpDn = capillaryInfo.limitUp;
 		size_t rectUpLf = capillaryInfo.limitLf;
 		size_t rectUpRt = capillaryInfo.limitRt;
@@ -406,7 +427,7 @@ void CapillaryProcessor::collectSurroundings(std::vector<CapillaryInfo>& capilla
 
 		// Rectangle at down
 		size_t rectDnUp = capillaryInfo.limitDn;
-		size_t rectDnDn = std::min((int)capillaryInfo.limitDn + (int)surroundingPixels, (int)m_processedMatrix.rows());
+		size_t rectDnDn = std::min((int)capillaryInfo.limitDn + (int)m_surroundingPixels, (int)m_processedMatrix.rows());
 		size_t rectDnLf = capillaryInfo.limitLf;
 		size_t rectDnRt = capillaryInfo.limitRt;
 		updateSurroundingData(capillaryInfo, rectDnUp, rectDnDn, rectDnLf, rectDnRt);
@@ -414,7 +435,7 @@ void CapillaryProcessor::collectSurroundings(std::vector<CapillaryInfo>& capilla
 		// Rectangle at left
 		size_t rectLfUp = capillaryInfo.limitUp;
 		size_t rectLfDn = capillaryInfo.limitDn;
-		size_t rectLfLf = std::max((int)capillaryInfo.limitLf - (int)surroundingPixels, 0);
+		size_t rectLfLf = std::max((int)capillaryInfo.limitLf - (int)m_surroundingPixels, 0);
 		size_t rectLfRt = capillaryInfo.limitLf;
 		updateSurroundingData(capillaryInfo, rectLfUp, rectLfDn, rectLfLf, rectLfRt);
 
@@ -422,7 +443,7 @@ void CapillaryProcessor::collectSurroundings(std::vector<CapillaryInfo>& capilla
 		size_t rectRtUp = capillaryInfo.limitUp;
 		size_t rectRtDn = capillaryInfo.limitDn;
 		size_t rectRtLf = capillaryInfo.limitRt;
-		size_t rectRtRt = std::min((int)capillaryInfo.limitRt + (int)surroundingPixels, (int)m_processedMatrix.cols());
+		size_t rectRtRt = std::min((int)capillaryInfo.limitRt + (int)m_surroundingPixels, (int)m_processedMatrix.cols());
 		updateSurroundingData(capillaryInfo, rectRtUp, rectRtDn, rectRtLf, rectRtRt);
 	}
 }
@@ -450,9 +471,9 @@ void CapillaryProcessor::trimAndSetLayerScores(LayerInfo& layerInfo, float start
 	layerInfo.maxScore = capillariesInfo.begin()->score;
 
 	// Keep only predefined number of capillaries with best scores
-	if (capillariesInfo.size() > DESCRIBED_CAPILLARIES)
+	if (capillariesInfo.size() > m_numDescribedCappilaries)
 	{
-		capillariesInfo.erase(capillariesInfo.begin() + DESCRIBED_CAPILLARIES, capillariesInfo.end());
+		capillariesInfo.erase(capillariesInfo.begin() + m_numDescribedCappilaries, capillariesInfo.end());
 	}
 
 	std::string filenameData = layerFolderName + "/Data.csv";
@@ -464,7 +485,7 @@ void CapillaryProcessor::trimAndSetLayerScores(LayerInfo& layerInfo, float start
 	{
 		// Calculate contrast
 		byte contrast = 0;
-		if (capillaryInfo.pixelsCapillary >= MIN_PIXELS_IN_CAPILLARY)
+		if (capillaryInfo.pixelsCapillary >= m_minPixelsInCappilary)
 		{
 			byte avgGrayLevelCapillary =
 				(byte)std::roundf((float)capillaryInfo.energyCapillary / capillaryInfo.pixelsCapillary);

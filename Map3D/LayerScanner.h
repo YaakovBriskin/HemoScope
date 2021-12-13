@@ -9,10 +9,12 @@
 class LayerScanner
 {
 public:
-	std::vector<LayerInfo> detectCapillaries(Map& map, const std::string& outputFolderName)
+	std::vector<LayerInfo> detectCapillaries(Map& map, const std::string& outputFolderName, Config& config)
 	{
 		std::cout << "Detection of capillaries started" << std::endl << std::endl;
 		m_timer.start();
+
+		m_cornerDetector.init(config);
 
 		// Create folder for capillaries data
 		std::string capillariesFolderName = outputFolderName + "/Capillaries";
@@ -66,7 +68,7 @@ public:
 				toString(layerInfo.sumScore, 1);
 			fileAllLayers << printedLine << std::endl;
 #endif
-			if ((scoredCorners.size() >= MIN_FOUND_CAPILLARIES) && (layerInfo.sumScore > 0.0F))
+			if ((scoredCorners.size() >= m_cornerDetector.getMinFoundCapillaries()) && (layerInfo.sumScore > 0.0F))
 			{
 				layersWithCapillaries.push_back(layerInfo);
 			}

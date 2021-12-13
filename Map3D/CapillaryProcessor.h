@@ -7,16 +7,25 @@ class CapillaryProcessor
 {
 public:
 	CapillaryProcessor();
-
+	void init(Config& config);
 	void describeCapillaries(Map& map, LayerInfo& layerInfo, const std::string& outputFolderName);
 
 private:
+	// Kernels to process image - used also to skip unwanted pixels on seams
+	size_t m_fineSmoothingKernelSize;
+	size_t m_deepSmoothingKernelSize;
+
+	size_t m_numDescribedCappilaries;
+	size_t m_minPixelsInCappilary;
+	size_t m_surroundingPixels;
+
 	ByteMatrix m_originalMatrix;
 	ByteMatrix m_processedMatrix;
 	size_t m_layerIndex;
 	Timer m_timer;
 
 private:
+	void initConfig(Config& config);
 	void performGaussianBlur(ByteMatrix& src, ByteMatrix& dst);
 	void performUniformSmoothing(ByteMatrix& src, ByteMatrix& dst);
 	void performExcessFiltering(ByteMatrix& src, ByteMatrix& dst);

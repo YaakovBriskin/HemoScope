@@ -20,6 +20,11 @@ void loadConfig(std::string configFilename)
 	}
 }
 
+void initGeneralData()
+{
+	initGeneralData(config);
+}
+
 void buildMap(const std::string& folderName)
 {
 	map.buildMap(folderName, config);
@@ -37,7 +42,7 @@ void saveStiched(const std::string& outputFolderName)
 
 void detectCapillaries(const std::string& outputFolderName)
 {
-	layersWithCapillaries = layerScanner.detectCapillaries(map, outputFolderName);
+	layersWithCapillaries = layerScanner.detectCapillaries(map, outputFolderName, config);
 }
 
 void describeCapillaries(const std::string& outputFolderName)
@@ -53,6 +58,7 @@ void describeCapillaries(const std::string& outputFolderName)
 	std::ofstream fileAllLayers(filenameAllLayers);
 	fileAllLayers << "Layer,Frames,Max score,Sum score" << std::endl;
 #endif
+	capillaryProcessor.init(config);
 	size_t bestLayerIndex = 0;
 	float bestLayerSumScore = 0.0F;
 	for (LayerInfo& layerInfo : layersWithCapillaries)
@@ -84,12 +90,12 @@ void describeCapillaries(const std::string& outputFolderName)
 
 void loadPositionsZ(const std::string& folderName)
 {
-	positionsZ = sequence.loadPositionsZ(folderName);
+	positionsZ = sequence.loadPositionsZ(folderName, config);
 }
 
 void buildSequence(const std::string& folderName)
 {
-	sequence.buildSequence(folderName);
+	sequence.buildSequence(folderName, config);
 }
 
 void saveProjections(const std::string& outputFolderName)
@@ -97,13 +103,24 @@ void saveProjections(const std::string& outputFolderName)
 	sequence.saveProjections(outputFolderName);
 }
 
-void calculateStatistics(const std::string& imagesFolderName, const std::string& outputFolderName)
+void calculateDepth(const std::string& imagesFolderName, const std::string& outputFolderName)
 {
-	wideImageProcessor.calculateStatistics(imagesFolderName, outputFolderName, positionsZ);
-	//wideImageProcessor.calculateStatisticsHalf(imagesFolderName, outputFolderName, positionsZ);
-}
+	std::string focusingMethod = config.getStringValue(keyFocusingMethod);
 
-void calculateSpectrum(const std::string& imagesFolderName, const std::string& outputFolderName)
-{
-	spectrumAnalyzer.calculateSpectrum(imagesFolderName, outputFolderName, positionsZ);
+	if (focusingMethod == "Mode")
+	{
+		wideImageProcessor.calculateStatistics(imagesFolderName, outputFolderName, positionsZ,
+			ImageMarkerType::GRAY_LEVEL_MODE, config);
+	}
+
+	if (focusingMethod == "Variance")
+	{
+		wideImageProcessor.calculateStatistics(imagesFolderName, outputFolderName, positionsZ,
+			ImageMarkerType::GRAY_LEVEL_VARIANCE, config);
+	}
+
+	if (focusingMethod == "Spectrum")
+	{
+		spectrumAnalyzer.calculateSpectrum(imagesFolderName, outputFolderName, positionsZ);
+	}
 }

@@ -153,7 +153,8 @@ private:
 	std::map<float, size_t> getUniqueIndexedPositions(const std::vector<std::string>& coords);
 	std::vector<cv::Mat> readImages(const std::string& folderName);
 	void initLayers(const cv::Mat& firstImage);
-	void stitchImages(const std::vector<std::vector<std::string>>& scanPositions, const std::vector<cv::Mat>& images);
+	void stitchImages(const std::vector<std::vector<std::string>>& scanPositions,
+		const std::vector<cv::Mat>& images, size_t deepSmoothingKernelSize);
 	void stitchSingleImage(ByteMatrix& dstMatrix, const cv::Mat& srcImage,
 		const size_t dstOffsetX, const size_t dstOffsetY, const size_t frameW, const size_t frameH);
 	void copyScanPosFile(const std::string& scanPosFolderName, const std::string& outputFolderName);

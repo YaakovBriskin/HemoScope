@@ -18,24 +18,25 @@ struct RegressionResult
 	float offset;
 };
 
+// Used colors
 const byte BLACK = 0;
 const byte DELIM = 128;
 const byte WHITE = 255;
 const byte LIGHT_GRAY = 0xCD;
 
-// Size of the kernel to find corners
+// Size of Sobel kernels to find corners
 const size_t CORNER_DETECTION_KERNEL_SIZE = 3;
 
-// Kernels to process image - used also to skip unwanted pixels on seams
-const size_t FINE_SMOOTHING_KERNEL_SIZE = 5;
-const size_t DEEP_SMOOTHING_KERNEL_SIZE = 51;
+// General data from configuration
+static size_t pixelsInMm;
 
-const size_t MIN_FOUND_CAPILLARIES = 3;
-const size_t DESCRIBED_CAPILLARIES = 10;
-const size_t MIN_PIXELS_IN_CAPILLARY = 20;
+// Locally used data from configuration
+static byte grayLevelOriginalMin;
+static byte grayLevelOriginalMax;
+static byte grayLevelProcessedMin;
+static byte grayLevelProcessedMax;
 
-const std::string Z_POS_FILENAME = "TF_vec_col.csv";
-
+void initGeneralData(Config& config);
 size_t mm2pixels(float mm);
 float pixels2mm(size_t pixels);
 size_t rad2deg(float angleRadians);

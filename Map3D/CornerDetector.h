@@ -7,7 +7,9 @@ class CornerDetector
 public:
 	CornerDetector();
 
+	void init(Config& config);
 	void setLayerPosition(float z);
+	size_t getMinFoundCapillaries();
 
 	// Apply Gx and Gy Sobel kernels and find average gradient values over predefined threshold
 	std::vector<ScoredCorner> getCornersSobel(Map& map, ByteMatrix& matrix,
@@ -25,6 +27,10 @@ private:
 	// Minimal allowed distance between detected corners
 	size_t m_minDistancePixels;
 
+	// Threshold to accept or reject the layer
+	size_t m_minFoundCapillaries;
+
 private:
+	void initConfig(Config& config);
 	void writeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer);
 };

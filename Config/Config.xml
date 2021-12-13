@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <HemoScope name="Capillaries measurement automation">
+	<General>
+		<PixelsInMm>2600</PixelsInMm>
+	</General>
 	<Input>
 	</Input>
 	<Output>
@@ -23,11 +26,41 @@
 				</FrameRelative>
 			</Image>
 		</Stitching>
-		<Identification>
+		<Identification description="Detect corners on Sobel gradient of map">
+			<CroppedRows>400</CroppedRows>
+			<GrayLevelOriginal>
+				<Min>30</Min>
+				<Max>90</Max>
+			</GrayLevelOriginal>
+			<GradientThreshold>35</GradientThreshold>
+			<MinDistancePixels>200</MinDistancePixels>
+			<MinFoundCapillaries>3</MinFoundCapillaries>
 		</Identification>
-		<Characterization>
+		<Characterization description="Find rectangle inscribed in a capillary">
+			<FineSmoothingKernelSize>5</FineSmoothingKernelSize>
+			<DeepSmoothingKernelSize>51</DeepSmoothingKernelSize>
+			<GrayLevelProcessed>
+				<Min>0</Min>
+				<Max>120</Max>
+			</GrayLevelProcessed>
+			<NumDescribedCappilaries>10</NumDescribedCappilaries>
+			<MinPixelsInCappilary>20</MinPixelsInCappilary>
+			<SurroundingPixels>10</SurroundingPixels>
 		</Characterization>
-		<Focusing>
+		<Focusing description="Lock Z position to keep focusing on selected capillary">
+			<ZPosFile>TF_vec_col.csv</ZPosFile>
+			<Method description="Select one of: Mode, Variance, Spectrum">Mode</Method>
+			<Mode>
+				<ImagePartCenter>3</ImagePartCenter>
+			</Mode>
+			<Variance>
+				<ImagePartCenter>3</ImagePartCenter>
+			</Variance>
+			<Spectrum>
+				<SizeFFT>512</SizeFFT>
+				<SizeEnergy>25</SizeEnergy>
+				<Normalization>15.0</Normalization>
+			</Spectrum>
 		</Focusing>
 	</Procedures>
 </HemoScope>

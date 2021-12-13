@@ -4,14 +4,35 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <string>
 
-const std::string keyScanPosFilename	= "HemoScope.Procedures.Stitching.ScanPosFile";
-const std::string keyMarkerCornerSize	= "HemoScope.Procedures.Stitching.MarkerCornerSize";
-const std::string keyImageBiasPixelsX	= "HemoScope.Procedures.Stitching.Image.BiasPixels.X";
-const std::string keyImageBiasPixelsY	= "HemoScope.Procedures.Stitching.Image.BiasPixels.Y";
-const std::string keyImageMarginRelX	= "HemoScope.Procedures.Stitching.Image.MarginRelative.X";
-const std::string keyImageMarginRelY	= "HemoScope.Procedures.Stitching.Image.MarginRelative.Y";
-const std::string keyImageFrameRelW		= "HemoScope.Procedures.Stitching.Image.FrameRelative.Width";
-const std::string keyImageFrameRelH		= "HemoScope.Procedures.Stitching.Image.FrameRelative.Height";
+const std::string keyPixelsInMm					= "HemoScope.General.PixelsInMm";
+const std::string keyScanPosFilename			= "HemoScope.Procedures.Stitching.ScanPosFile";
+const std::string keyMarkerCornerSize			= "HemoScope.Procedures.Stitching.MarkerCornerSize";
+const std::string keyImageBiasPixelsX			= "HemoScope.Procedures.Stitching.Image.BiasPixels.X";
+const std::string keyImageBiasPixelsY			= "HemoScope.Procedures.Stitching.Image.BiasPixels.Y";
+const std::string keyImageMarginRelX			= "HemoScope.Procedures.Stitching.Image.MarginRelative.X";
+const std::string keyImageMarginRelY			= "HemoScope.Procedures.Stitching.Image.MarginRelative.Y";
+const std::string keyImageFrameRelW				= "HemoScope.Procedures.Stitching.Image.FrameRelative.Width";
+const std::string keyImageFrameRelH				= "HemoScope.Procedures.Stitching.Image.FrameRelative.Height";
+const std::string keyCroppedRows				= "HemoScope.Procedures.Identification.CroppedRows";
+const std::string keyGrayLevelOriginalMin		= "HemoScope.Procedures.Identification.GrayLevelOriginal.Min";
+const std::string keyGrayLevelOriginalMax		= "HemoScope.Procedures.Identification.GrayLevelOriginal.Max";
+const std::string keyGradientThreshold			= "HemoScope.Procedures.Identification.GradientThreshold";
+const std::string keyMinDistancePixels			= "HemoScope.Procedures.Identification.MinDistancePixels";
+const std::string keyMinFoundCapillaries		= "HemoScope.Procedures.Identification.MinFoundCapillaries";
+const std::string keyFineSmoothingKernelSize	= "HemoScope.Procedures.Characterization.FineSmoothingKernelSize";
+const std::string keyDeepSmoothingKernelSize	= "HemoScope.Procedures.Characterization.DeepSmoothingKernelSize";
+const std::string keyGrayLevelProcessedMin		= "HemoScope.Procedures.Characterization.GrayLevelProcessed.Min";
+const std::string keyGrayLevelProcessedMax		= "HemoScope.Procedures.Characterization.GrayLevelProcessed.Max";
+const std::string keyNumDescribedCappilaries	= "HemoScope.Procedures.Characterization.NumDescribedCappilaries";
+const std::string keyMinPixelsInCappilary		= "HemoScope.Procedures.Characterization.MinPixelsInCappilary";
+const std::string keySurroundingPixels			= "HemoScope.Procedures.Characterization.SurroundingPixels";
+const std::string keyZPosFilename				= "HemoScope.Procedures.Focusing.ZPosFile";
+const std::string keyFocusingMethod				= "HemoScope.Procedures.Focusing.Method";
+const std::string keyModeImagePartCenter		= "HemoScope.Procedures.Focusing.Mode.ImagePartCenter";
+const std::string keyVarianceImagePartCenter	= "HemoScope.Procedures.Focusing.Variance.ImagePartCenter";
+const std::string keySpectrumSizeFFT			= "HemoScope.Procedures.Focusing.Spectrum.SizeFFT";
+const std::string keySpectrumSizeEnergy			= "HemoScope.Procedures.Focusing.Spectrum.SizeEnergy";
+const std::string keySpectrumNormalization		= "HemoScope.Procedures.Focusing.Spectrum.Normalization";
 
 class Config
 {

@@ -18,7 +18,7 @@ class WideImageProcessor
 {
 public:
 	void calculateStatistics(const std::string& imagesFolderName, const std::string& outputFolderName,
-		std::vector<float>& positionsZ)
+		std::vector<float>& positionsZ, ImageMarkerType imageMarkerType, Config& config)
 	{
 		std::filesystem::path inputFolder = std::filesystem::absolute(std::filesystem::path(imagesFolderName));
 		std::string absFolderName = inputFolder.generic_string();
@@ -42,8 +42,8 @@ public:
 				std::to_string(fileIndex) + ".csv";
 			std::ofstream histogramFile(histogramFilename);
 
-			float imageMarker = getImageMarker(wideImage, ImageMarkerType::GRAY_LEVEL_VARIANCE,
-				histogramFile, statisticsFile);
+			float imageMarker = getImageMarker(wideImage, imageMarkerType,
+				histogramFile, statisticsFile, config);
 			histogramFile.close();
 			imageMarkers.push_back(imageMarker);
 		}
@@ -55,7 +55,7 @@ public:
 	}
 
 	void calculateStatisticsHalf(const std::string& imagesFolderName, const std::string& outputFolderName,
-		std::vector<float>& positionsZ)
+		std::vector<float>& positionsZ, ImageMarkerType imageMarkerType, Config& config)
 	{
 		std::filesystem::path inputFolder = std::filesystem::absolute(std::filesystem::path(imagesFolderName));
 		std::string absFolderName = inputFolder.generic_string();
@@ -82,8 +82,8 @@ public:
 				std::to_string(fileIndex) + ".csv";
 			std::ofstream histogramFile(histogramFilename);
 
-			float imageMarker = getImageMarker(wideImage, ImageMarkerType::GRAY_LEVEL_VARIANCE,
-				histogramFile, statisticsFile);
+			float imageMarker = getImageMarker(wideImage, imageMarkerType,
+				histogramFile, statisticsFile, config);
 			histogramFile.close();
 
 			if (fileIndex % 2 == 0)
@@ -106,15 +106,20 @@ public:
 
 private:
 	float getImageMarker(cv::Mat& image, ImageMarkerType imageMarkerType,
-		std::ofstream& histogramFile, std::ofstream& statisticsFile)
+		std::ofstream& histogramFile, std::ofstream& statisticsFile, Config& config)
 	{
 		size_t rows = image.rows;
 		size_t cols = image.cols;
 
-		size_t rowCenterL = rows / 3;
-		size_t rowCenterR = 2 * rows / 3;
-		size_t colCenterL = cols / 3;
-		size_t colCenterR = 2 * cols / 3;
+		size_t imagePartCenter = (imageMarkerType == ImageMarkerType::GRAY_LEVEL_MODE) ?
+			(size_t)config.getIntValue(keyModeImagePartCenter) :
+			(size_t)config.getIntValue(keyVarianceImagePartCenter);
+		size_t imageMargin = imagePartCenter / 2;
+
+		size_t rowCenterL = imageMargin * rows / imagePartCenter;
+		size_t rowCenterR = (imageMargin + 1) * rows / imagePartCenter;
+		size_t colCenterL = imageMargin / imagePartCenter;
+		size_t colCenterR = (imageMargin + 1) * cols / imagePartCenter;
 
 		size_t pixelsNum = (rowCenterR - rowCenterL) * (colCenterR - colCenterL);
 

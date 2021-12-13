@@ -102,14 +102,25 @@ __global__ void combineSobelFilters(byte* d_srcMatrixGx, byte* d_srcMatrixGy,
 CornerDetector::CornerDetector()
 {
 	m_z = 0.0F;
-	m_croppedRows = 400;
-	m_gradientThreshold = 35;
-	m_minDistancePixels = 200;
+	m_croppedRows = 0;
+	m_gradientThreshold = 0;
+	m_minDistancePixels = 0;
+	m_minFoundCapillaries = 0;
+}
+
+void CornerDetector::init(Config& config)
+{
+	initConfig(config);
 }
 
 void CornerDetector::setLayerPosition(float z)
 {
 	m_z = z;
+}
+
+size_t CornerDetector::getMinFoundCapillaries()
+{
+	return m_minFoundCapillaries;
 }
 
 /*
@@ -255,6 +266,15 @@ std::vector<ScoredCorner> CornerDetector::getCornersSobel(Map& map, ByteMatrix& 
 	Private Host (CPU) functions to call kernel Device (GPU) functions
 	==================================================================
 */
+
+void CornerDetector::initConfig(Config& config)
+{
+	// Get parameters from configuration
+	m_croppedRows			= (size_t)config.getIntValue(keyCroppedRows);
+	m_gradientThreshold		= (byte)config.getIntValue(keyGradientThreshold);
+	m_minDistancePixels		= (size_t)config.getIntValue(keyMinDistancePixels);
+	m_minFoundCapillaries	= (size_t)config.getIntValue(keyMinFoundCapillaries);
+}
 
 void CornerDetector::writeCorners(const std::vector<ScoredCorner>& scoredCorners, const std::string& filenameLayer)
 {

@@ -1,15 +1,22 @@
 #include "Utils.h"
 
-const size_t PIXELS_IN_MM = 2600;
+void initGeneralData(Config& config)
+{
+	pixelsInMm = (size_t)config.getIntValue(keyPixelsInMm);
+	grayLevelOriginalMin = (byte)config.getIntValue(keyGrayLevelOriginalMin);
+	grayLevelOriginalMax = (byte)config.getIntValue(keyGrayLevelOriginalMax);
+	grayLevelProcessedMin = (byte)config.getIntValue(keyGrayLevelProcessedMin);
+	grayLevelProcessedMax = (byte)config.getIntValue(keyGrayLevelProcessedMax);
+}
 
 size_t mm2pixels(float mm)
 {
-	return (size_t)std::roundf(PIXELS_IN_MM * mm);
+	return (size_t)std::roundf(pixelsInMm * mm);
 }
 
 float pixels2mm(size_t pixels)
 {
-	return (float)pixels / PIXELS_IN_MM;
+	return (float)pixels / pixelsInMm;
 }
 
 size_t rad2deg(float angleRadians)
@@ -30,17 +37,13 @@ float makeCentrosymmetric(float angleRadians)
 // Examine gray level to find possible capillary corner - performed on raw image
 bool isValidGrayLevelOriginal(byte val)
 {
-	const byte glMin = 30;
-	const byte glMax = 90;
-	return (glMin <= val) && (val <= glMax);
+	return (grayLevelOriginalMin <= val) && (val <= grayLevelOriginalMax);
 }
 
 // Examine gray level to find limit of capillary - performed on processed image
 bool isValidGrayLevelProcessed(byte val)
 {
-	const byte glMin = 0;
-	const byte glMax = 120;
-	return (glMin <= val) && (val <= glMax);
+	return (grayLevelProcessedMin <= val) && (val <= grayLevelProcessedMax);
 }
 
 std::string toString(const float val, const int n)

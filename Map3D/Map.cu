@@ -65,7 +65,8 @@ void Map::buildMap(const std::string& folderName, Config& config)
 	// Build stitched images on each layer
 	std::cout << "Start stitching of " << scanPositions[0].size() << " images" << std::endl;
 	m_timer.start();
-	stitchImages(scanPositions, images);
+	size_t deepSmoothingKernelSize = (size_t)config.getIntValue(keyDeepSmoothingKernelSize);
+	stitchImages(scanPositions, images, deepSmoothingKernelSize);
 	m_timer.end();
 	std::cout << "Images are stitched in " <<
 		m_timer.getDurationMilliseconds() << " ms" << std::endl << std::endl;
@@ -328,7 +329,7 @@ void Map::initLayers(const cv::Mat& firstImage)
 }
 
 void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPositions,
-	const std::vector<cv::Mat>& images)
+	const std::vector<cv::Mat>& images, size_t deepSmoothingKernelSize)
 {
 	// Convert steps from mm to pixels and add preliminarly known biases if need
 	const size_t stepPixelsX = mm2pixels(m_stepXmm) + m_imageBiasPixelsX;
@@ -364,7 +365,7 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 		// Store all cols in kernel neighborhood to avoid false-positive corners around seams
 		if ((dstOffsetX > 0) && !isOnSeam(dstOffsetX, false))
 		{
-			for (size_t col = dstOffsetX - DEEP_SMOOTHING_KERNEL_SIZE; col <= dstOffsetX + DEEP_SMOOTHING_KERNEL_SIZE; col++)
+			for (size_t col = dstOffsetX - deepSmoothingKernelSize; col <= dstOffsetX + deepSmoothingKernelSize; col++)
 			{
 				m_seamCols.push_back(col);
 			}
@@ -373,7 +374,7 @@ void Map::stitchImages(const std::vector<std::vector<std::string>>& scanPosition
 		// Store all rows in kernel neighborhood to avoid false-positive corners around seams
 		if ((dstOffsetY > 0) && !isOnSeam(dstOffsetY, true))
 		{
-			for (size_t row = dstOffsetY - DEEP_SMOOTHING_KERNEL_SIZE; row <= dstOffsetY + DEEP_SMOOTHING_KERNEL_SIZE; row++)
+			for (size_t row = dstOffsetY - deepSmoothingKernelSize; row <= dstOffsetY + deepSmoothingKernelSize; row++)
 			{
 				m_seamRows.push_back(row);
 			}

@@ -4,7 +4,7 @@
 void processCapillaries()
 {
     const std::string inputFolderName = "../XYZ";
-    const std::string dataFolderName = "20";
+    const std::string dataFolderName = "17";
     const std::string subfolderName = "";
     std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
     std::string outputFolderName = "../Output/" + dataFolderName;
@@ -29,13 +29,13 @@ void processFocus()
     std::string imagesFolderName = inputFolderName + "/" + dataFolderName;
     std::string outputFolderName = "../Output/" + dataFolderName;
     loadPositionsZ(imagesFolderName);
-    calculateStatistics(imagesFolderName, outputFolderName);
-    //calculateSpectrum(imagesFolderName, outputFolderName);
+    calculateDepth(imagesFolderName, outputFolderName);
 }
 
 int main()
 {
     loadConfig("../Config/Config.xml");
+    initGeneralData();
     processCapillaries();
     //processFocus();
     return 0;
