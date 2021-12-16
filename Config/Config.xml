@@ -5,18 +5,18 @@
 	</General>
 	<Input>
 		<Map>
-			<Folder>../XYZ</Folder>
+			<Folder>../../../XYZ</Folder>
 			<DataFolder>17</DataFolder>
 			<Subfolder></Subfolder>
 		</Map>
 		<Lock>
-			<Folder>../Z_locking</Folder>
+			<Folder>../../../Z_locking</Folder>
 			<DataFolder>ThroughFocus_C11_2</DataFolder>
 			<Subfolder></Subfolder>
 		</Lock>
 	</Input>
 	<Output>
-		<Folder>../Output</Folder>
+		<Folder>../../../Output</Folder>
 	</Output>
 	<Procedures>
 		<Stitching description="Stitch images by layers according to scan positions">

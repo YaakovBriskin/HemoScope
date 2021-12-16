@@ -16,7 +16,7 @@ std::string outputFolderNameMap;
 std::string inputFolderNameLock;
 std::string outputFolderNameLock;
 
-void loadConfig(std::string configFilename)
+void loadConfig(const char* configFilename)
 {
 	bool loadResult = config.load(configFilename);
 	if (!loadResult)
@@ -25,7 +25,7 @@ void loadConfig(std::string configFilename)
 	}
 }
 
-void initFolderNames(Config& config)
+void initFolderNames()
 {
 	std::string inFolderNameMap			= config.getStringValue(keyInputMapFolder);
 	std::string inDataFolderNameMap		= config.getStringValue(keyInputMapDataFolder);
@@ -57,7 +57,7 @@ void initFolderNames(Config& config)
 void initGeneralData()
 {
 	initGeneralData(config);
-	initFolderNames(config);
+	initFolderNames();
 }
 
 void buildMap()

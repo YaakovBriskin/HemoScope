@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "GUI": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "PATH": "%PATH%;.."
+      },
+      "nativeDebugging": true
+    }
+  }
+}

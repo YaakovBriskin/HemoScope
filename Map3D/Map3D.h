@@ -8,14 +8,17 @@
 #include "WideImageProcessor.h"
 #include "SpectrumAnalyzer.h"
 
-MAP_API void loadConfig(std::string configFilename);
-MAP_API void initGeneralData();
-MAP_API void buildMap();
-MAP_API void printValueAtTruncatedPos(float x, float y, float z);
-MAP_API void saveStiched();
-MAP_API void detectCapillaries();
-MAP_API void describeCapillaries();
-MAP_API void loadPositionsZ();
-MAP_API void buildSequence();
-MAP_API void saveProjections();
-MAP_API void calculateDepth();
+extern "C"
+{
+	MAP_API void __cdecl loadConfig(const char* configFilename);
+	MAP_API void __cdecl initGeneralData();
+	MAP_API void __cdecl buildMap();
+	MAP_API void __cdecl printValueAtTruncatedPos(float x, float y, float z);
+	MAP_API void __cdecl saveStiched();
+	MAP_API void __cdecl detectCapillaries();
+	MAP_API void __cdecl describeCapillaries();
+	MAP_API void __cdecl loadPositionsZ();
+	MAP_API void __cdecl buildSequence();
+	MAP_API void __cdecl saveProjections();
+	MAP_API void __cdecl calculateDepth();
+}
