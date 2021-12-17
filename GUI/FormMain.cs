@@ -16,78 +16,105 @@ namespace GUI
             MapWrapper.initGeneralData();
         }
 
-        private void TxtInputFolderMap_TextChanged(object sender, EventArgs e)
-        {
-            EnableMapButtons();
-        }
-
-        private void TxtOutputFolderMap_TextChanged(object sender, EventArgs e)
-        {
-            EnableMapButtons();
-        }
-
         private void BtnBrowseMapInputFolder_Click(object sender, EventArgs e)
         {
-            // OPEN FOLDER BROWSER
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+            {
+                DialogResult result = fbd.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                {
+                    TxtInputFolderMap.Text = fbd.SelectedPath;
+                }
+            }
         }
 
         private void BtnBrowseMapOutputFolder_Click(object sender, EventArgs e)
         {
-            // OPEN FOLDER BROWSER
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+            {
+                DialogResult result = fbd.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                {
+                    TxtOutputFolderMap.Text = fbd.SelectedPath;
+                }
+            }
         }
 
         private void BtnBuildMap_Click(object sender, EventArgs e)
         {
-            EnableMapButtons();
+            SetControlsEnabled(false);
             MapWrapper.buildMap();
             MapWrapper.saveStiched();
-            DisableMapButtons();
+            SetControlsEnabled(true);
         }
 
         private void BtnDetect_Click(object sender, EventArgs e)
         {
-            EnableMapButtons();
+            SetControlsEnabled(false);
             MapWrapper.buildMap();
             MapWrapper.saveStiched();
             MapWrapper.detectCapillaries();
             MapWrapper.saveStiched();
-            DisableMapButtons();
+            SetControlsEnabled(true);
         }
 
         private void BtnDescribe_Click(object sender, EventArgs e)
         {
-            EnableMapButtons();
+            SetControlsEnabled(false);
             MapWrapper.buildMap();
             MapWrapper.saveStiched();
             MapWrapper.detectCapillaries();
             MapWrapper.describeCapillaries();
             MapWrapper.saveStiched();
-            DisableMapButtons();
+            SetControlsEnabled(true);
         }
 
         private void BtnBrowseLockInputFolder_Click(object sender, EventArgs e)
         {
-            // OPEN FOLDER BROWSER
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+            {
+                DialogResult result = fbd.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                {
+                    TxtInputFolderLock.Text = fbd.SelectedPath;
+                }
+            }
         }
 
         private void BtnBrowseLockOutputFolder_Click(object sender, EventArgs e)
         {
-            // OPEN FOLDER BROWSER
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+            {
+                DialogResult result = fbd.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                {
+                    TxtOutputFolderLock.Text = fbd.SelectedPath;
+                }
+            }
         }
 
         private void BtnMode_Click(object sender, EventArgs e)
         {
-
+            SetControlsEnabled(false);
+            MapWrapper.loadPositionsZ();
+            MapWrapper.calculateDepth();
+            SetControlsEnabled(true);
         }
 
         private void BtnVariance_Click(object sender, EventArgs e)
         {
-
+            SetControlsEnabled(false);
+            MapWrapper.loadPositionsZ();
+            MapWrapper.calculateDepth();
+            SetControlsEnabled(true);
         }
 
         private void BtnSpectrum_Click(object sender, EventArgs e)
         {
-
+            SetControlsEnabled(false);
+            MapWrapper.loadPositionsZ();
+            MapWrapper.calculateDepth();
+            SetControlsEnabled(true);
         }
 
         private void BtnClose_Click(object sender, EventArgs e)
@@ -95,22 +122,23 @@ namespace GUI
             Close();
         }
 
-        private void DisableMapButtons()
+        private void SetControlsEnabled(bool state)
         {
-            BtnBrowseMapInputFolder.Enabled = false;
-            BtnBrowseMapOutputFolder.Enabled = false;
-            BtnBuildMap.Enabled = false;
-            BtnDetect.Enabled = false;
-            BtnDescribe.Enabled = false;
+            SetControlsInGroupBoxEnabled(BoxMap, state);
+            SetControlsInGroupBoxEnabled(BoxLock, state);
+            BtnClose.Enabled = state;
         }
 
-        private void EnableMapButtons()
+        private void SetControlsInGroupBoxEnabled(GroupBox groupBox, bool state)
         {
-            BtnBrowseMapInputFolder.Enabled = false;
-            BtnBrowseMapOutputFolder.Enabled = false;
-            BtnBuildMap.Enabled = false;
-            BtnDetect.Enabled = false;
-            BtnDescribe.Enabled = false;
+            foreach (Control control in groupBox.Controls)
+            {
+                Type controlType = control.GetType();
+                if ((controlType == typeof(TextBox)) || (controlType == typeof(Button)))
+                {
+                    control.Enabled = state;
+                }
+            }
         }
     }
 }
