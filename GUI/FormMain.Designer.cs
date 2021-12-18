@@ -90,6 +90,7 @@ namespace GUI
             this.TxtOutputFolderMap.Name = "TxtOutputFolderMap";
             this.TxtOutputFolderMap.Size = new System.Drawing.Size(640, 25);
             this.TxtOutputFolderMap.TabIndex = 11;
+            this.TxtOutputFolderMap.TextChanged += new System.EventHandler(this.TxtOutputFolderMap_TextChanged);
             // 
             // LblOutputFolderMap
             // 
@@ -117,6 +118,7 @@ namespace GUI
             this.TxtInputFolderMap.Name = "TxtInputFolderMap";
             this.TxtInputFolderMap.Size = new System.Drawing.Size(640, 25);
             this.TxtInputFolderMap.TabIndex = 8;
+            this.TxtInputFolderMap.TextChanged += new System.EventHandler(this.TxtInputFolderMap_TextChanged);
             // 
             // LblInputFolderMap
             // 
@@ -242,6 +244,7 @@ namespace GUI
             this.TxtOutputFolderLock.Name = "TxtOutputFolderLock";
             this.TxtOutputFolderLock.Size = new System.Drawing.Size(640, 25);
             this.TxtOutputFolderLock.TabIndex = 3;
+            this.TxtOutputFolderLock.TextChanged += new System.EventHandler(this.TxtOutputFolderLock_TextChanged);
             // 
             // TxtInputFolderLock
             // 
@@ -250,6 +253,7 @@ namespace GUI
             this.TxtInputFolderLock.Name = "TxtInputFolderLock";
             this.TxtInputFolderLock.Size = new System.Drawing.Size(640, 25);
             this.TxtInputFolderLock.TabIndex = 2;
+            this.TxtInputFolderLock.TextChanged += new System.EventHandler(this.TxtInputFolderLock_TextChanged);
             // 
             // LblOutputFolderLock
             // 

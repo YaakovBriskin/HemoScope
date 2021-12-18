@@ -21,4 +21,7 @@ extern "C"
 	MAP_API void __cdecl buildSequence();
 	MAP_API void __cdecl saveProjections();
 	MAP_API void __cdecl calculateDepth();
+	MAP_API void __cdecl overrideInt(const char* key, int val);
+	MAP_API void __cdecl overrideFloat(const char* key, float val);
+	MAP_API void __cdecl overrideString(const char* key, const char* val);
 }

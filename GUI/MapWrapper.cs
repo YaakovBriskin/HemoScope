@@ -37,5 +37,14 @@ namespace GUI
 
         [DllImport(@"Map3D.dll")]
         public static extern void calculateDepth();
+
+        [DllImport(@"Map3D.dll")]
+        public static extern void overrideInt(string key, int val);
+
+        [DllImport(@"Map3D.dll")]
+        public static extern void overrideFloat(string key, float val);
+
+        [DllImport(@"Map3D.dll")]
+        public static extern void overrideString(string key, string val);
     };
 }

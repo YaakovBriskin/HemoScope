@@ -11,10 +11,6 @@ SpectrumAnalyzer spectrumAnalyzer;
 Sequence sequence;
 std::vector<float> positionsZ;
 
-std::string inputFolderNameMap;
-std::string outputFolderNameMap;
-std::string inputFolderNameLock;
-std::string outputFolderNameLock;
 
 void loadConfig(const char* configFilename)
 {
@@ -25,43 +21,14 @@ void loadConfig(const char* configFilename)
 	}
 }
 
-void initFolderNames()
-{
-	std::string inFolderNameMap			= config.getStringValue(keyInputMapFolder);
-	std::string inDataFolderNameMap		= config.getStringValue(keyInputMapDataFolder);
-	std::string inSubfolderNameMap		= config.getStringValue(keyInputMapSubfolder);
-
-	std::string inFolderNameLock		= config.getStringValue(keyInputLockFolder);
-	std::string inDataFolderNameLock	= config.getStringValue(keyInputLockDataFolder);
-	std::string inSubfolderNameLock		= config.getStringValue(keyInputLockSubfolder);
-
-	std::string outFolderName			= config.getStringValue(keyOutputFolder);
-
-	inputFolderNameMap = inFolderNameMap + "/" + inDataFolderNameMap;
-	outputFolderNameMap = outFolderName + "/" + inDataFolderNameMap;
-	if (inSubfolderNameMap.size() > 0)
-	{
-		inputFolderNameMap += "/" + inSubfolderNameMap;
-		outputFolderNameMap += "_" + inSubfolderNameMap; // avoid to create nested folders
-	}
-
-	inputFolderNameLock = inFolderNameLock + "/" + inDataFolderNameLock;
-	outputFolderNameLock = outFolderName + "/" + inDataFolderNameLock;
-	if (inSubfolderNameLock.size() > 0)
-	{
-		inputFolderNameLock += "/" + inSubfolderNameLock;
-		outputFolderNameLock += "_" + inSubfolderNameLock; // avoid to create nested folders
-	}
-}
-
 void initGeneralData()
 {
 	initGeneralData(config);
-	initFolderNames();
 }
 
 void buildMap()
 {
+	std::string inputFolderNameMap = config.getStringValue(keyInputMapFolder);
 	map.buildMap(inputFolderNameMap, config);
 }
 
@@ -72,16 +39,19 @@ void printValueAtTruncatedPos(float x, float y, float z)
 
 void saveStiched()
 {
+	std::string outputFolderNameMap = config.getStringValue(keyOutputMapFolder);
 	map.saveStiched(layersWithCapillaries, outputFolderNameMap);
 }
 
 void detectCapillaries()
 {
+	std::string outputFolderNameMap = config.getStringValue(keyOutputMapFolder);
 	layersWithCapillaries = layerScanner.detectCapillaries(map, outputFolderNameMap, config);
 }
 
 void describeCapillaries()
 {
+	std::string outputFolderNameMap = config.getStringValue(keyOutputMapFolder);
 	if (layersWithCapillaries.empty())
 	{
 		std::cout << "No layers with enough capillaries are found" << std::endl << std::endl;
@@ -125,21 +95,26 @@ void describeCapillaries()
 
 void loadPositionsZ()
 {
+	std::string inputFolderNameLock = config.getStringValue(keyInputLockFolder);
 	positionsZ = sequence.loadPositionsZ(inputFolderNameLock, config);
 }
 
 void buildSequence()
 {
+	std::string inputFolderNameLock = config.getStringValue(keyInputLockFolder);
 	sequence.buildSequence(inputFolderNameLock, config);
 }
 
 void saveProjections()
 {
+	std::string outputFolderNameLock = config.getStringValue(keyOutputLockFolder);
 	sequence.saveProjections(outputFolderNameLock);
 }
 
 void calculateDepth()
 {
+	std::string inputFolderNameLock = config.getStringValue(keyInputLockFolder);
+	std::string outputFolderNameLock = config.getStringValue(keyOutputLockFolder);
 	std::string focusingMethod = config.getStringValue(keyFocusingMethod);
 
 	if (focusingMethod == "Mode")
@@ -158,4 +133,19 @@ void calculateDepth()
 	{
 		spectrumAnalyzer.calculateSpectrum(inputFolderNameLock, outputFolderNameLock, positionsZ);
 	}
+}
+
+void overrideInt(const char* key, int val)
+{
+	config.setOverride(key, val);
+}
+
+void overrideFloat(const char* key, float val)
+{
+	config.setOverride(key, val);
+}
+
+void overrideString(const char* key, const char* val)
+{
+	config.setOverride(key, val);
 }
